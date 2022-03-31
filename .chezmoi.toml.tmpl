@@ -1,0 +1,7 @@
+{{- $email := promptString "email" -}}
+[data]
+    email = "{{ $email }}"
+
+encryption = "gpg"
+[gpg]
+    symmetric = true

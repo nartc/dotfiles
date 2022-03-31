@@ -1,0 +1,245 @@
+# Fig pre block. Keep at the top of this file.
+export PATH="${PATH}:${HOME}/.local/bin"
+eval "$(fig init zsh pre)"
+
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+export GEM_HOME=$HOME/.gem
+export PATH=$GEM_HOME/bin:$PATH
+
+# If you come from bash you might have to change your $PATH.
+export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH=$HOME/code/jbrains:$PATH
+
+# Path to your oh-my-zsh installation.
+export ZSH="$HOME/.oh-my-zsh"
+
+# Set name of the theme to load --- if set to "random", it will
+# load a random theme each time oh-my-zsh is loaded, in which case,
+# to know which specific one was loaded, run: echo $RANDOM_THEME
+# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+
+# ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# Set list of themes to pick from when loading at random
+# Setting this variable when ZSH_THEME=random will cause zsh to load
+# a theme from this variable instead of looking in $ZSH/themes/
+# If set to an empty array, this variable will have no effect.
+# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+
+# Uncomment the following line to use case-sensitive completion.
+# CASE_SENSITIVE="true"
+
+
+# Uncomment the following line to use hyphen-insensitive completion.
+# Case-sensitive completion must be off. _ and - will be interchangeable.
+# HYPHEN_INSENSITIVE="true"
+
+# Uncomment one of the following lines to change the auto-update behavior
+# zstyle ':omz:update' mode disabled  # disable automatic updates
+# zstyle ':omz:update' mode auto      # update automatically without asking
+# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+
+#
+# Uncomment the following line to change how often to auto-update (in days).
+# zstyle ':omz:update' frequency 13
+
+#
+#
+# Uncomment the following line if pasting URLs and other text is messed up.
+# DISABLE_MAGIC_FUNCTIONS="true"
+
+#
+# Uncomment the following line to disable colors in ls.
+# DISABLE_LS_COLORS="true"
+
+# Uncomment the following line to disable auto-setting terminal title.
+# DISABLE_AUTO_TITLE="true"
+
+# Uncomment the following line to enable command auto-correction.
+# ENABLE_CORRECTION="true"
+
+# Uncomment the following line to display red dots whilst waiting for completion.
+# You can also set it to another string to have that shown instead of the default red dots.
+# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
+# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
+# COMPLETION_WAITING_DOTS="true"
+
+# Uncomment the following line if you want to disable marking untracked files
+# under VCS as dirty. This makes repository status check for large repositories
+# much, much faster.
+# DISABLE_UNTRACKED_FILES_DIRTY="true"
+
+# Uncomment the following line if you want to change the command execution time
+# stamp shown in the history command output.
+# You can set one of the optional three formats:
+# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# or set a custom format using the strftime function format specifications,
+# see 'man strftime' for details.
+# HIST_STAMPS="mm/dd/yyyy"
+
+# Would you like to use another custom folder than $ZSH/custom?
+# ZSH_CUSTOM=/path/to/new-custom-folder
+
+# Which plugins would you like to load?
+#
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+plugins=(git colored-man-pages colorize zsh-syntax-highlighting zsh-autosuggestions zsh-completions)
+
+
+source $ZSH/oh-my-zsh.sh
+
+#
+# User configuration
+
+# export MANPATH="/usr/local/man:$MANPATH"
+
+# You may need to manually set your language environment
+export CLICOLOR=1
+export LC_ALL=en_US.UTF-8
+
+# Preferred editor for local and remote sessions
+# if [[ -n $SSH_CONNECTION ]]; then
+#   export EDITOR='vim'
+# else
+#   export EDITOR='mvim'
+# fi
+
+# Compilation flags
+# export ARCHFLAGS="-arch x86_64"
+
+# Set personal aliases, overriding those provided by oh-my-zsh libs,
+# plugins, and themes. Aliases can be placed here, though oh-my-zsh
+# users are encouraged to define aliases within the ZSH_CUSTOM folder.
+# For a full list of active aliases, run `alias`.
+#
+# Example aliases
+alias zshconfig="nvim ~/.zshrc"
+alias zshsource="source ~/.zshrc"
+alias ohmyzsh="nvim ~/.oh-my-zsh"
+
+alias lg="lazygit"
+
+
+alias c="clear"
+alias rm="rm -rf"
+alias ls="ls -lah"
+alias nr="npm run"
+alias nrs="npm run start"
+alias nrb="npm run build"
+alias nrc="npm run commit"
+alias gpup="git push --set-upstream origin"
+alias ga.="git add ."
+alias ncu="npx npm-check-updates"
+alias taze="npx taze"
+
+alias node14="nvm use 14"
+alias node16="nvm use 16"
+alias npk="npx npkill"
+alias ylrS="yarn local-registry start"
+alias ylrE="yarn local-registry enable"
+alias ylrD="yarn local-registry disable"
+alias ylrC="yarn local-registry clear"
+alias gwt="git worktree"
+alias ghc="cd ~/code/github"
+alias ghcc="ghc && cd "
+
+# list all available simulators
+alias listios="xcrun simctl list devices"
+
+alias sandbox="cd ~/code/sandbox"
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+export NX_DAEMON=true
+export NX_TASKS_RUNNER_NEO_OUTPUT=true
+
+# Functions
+readJson() {
+  UNAMESTR=$(uname)
+
+  if [[ "$UNAMESTR" == 'Linux' ]]; then
+    SED_EXTENDED='-r'
+  elif [[ "$UNAMESTR" == 'Darwin' ]]; then
+    SED_EXTENDED='-E'
+  fi;
+
+  VALUE=$(grep -m 1 "\"${2}\"" "${1}" | sed ${SED_EXTENDED} 's/^ *//;s/.*: *"//;s/",?//')
+
+  if [ ! "$VALUE" ]; then
+    echo "Error: Cannot find \"${2}\" in ${1}" >&2;
+    exit 1;
+  else
+    echo "$VALUE";
+  fi;
+}
+
+local-nx-release() {
+    if test -f "package.json"; then
+
+    else
+
+        echo "No package.json found. Please run this command from the root of your project."
+    fi
+
+    PKG_NAME=$(readJson "package.json" "name")
+    PKG_VERSION=$(readJson "package.json" "version")
+
+    if [[ "$PKG_NAME" != '@nrwl/nx-source' ]]; then
+        echo "Error: This command must be run in the root of a nx-source project." >&2;
+        exit 1;
+    fi;
+
+    echo "In $PKG_NAME project"
+
+    # local vars
+    local SEMVER_REGEX='[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\([0-9A-Za-z-]*\)'
+    local DATE_FORMAT='%Y-%m-%d %H:%M:%S'
+
+    #MAJOR
+    PKG_MAJOR=`echo $PKG_VERSION | sed -e "s#$SEMVER_REGEX#\1#"`
+
+    IFS=. read -r head tail <<< $PKG_MAJOR
+    
+    if [ -z "$tail" ]
+    then
+    else
+      PKG_MAJOR=$head
+    fi
+
+    NEXT_MAJOR=$((PKG_MAJOR + 1))
+    NOW="$(date '+%F %T')"
+    read -r y m d H M S <<< "$(date -jf "$DATE_FORMAT" '+%Y %m %d %H %M %S' "$NOW")"
+
+    NEXT_VERSION="$NEXT_MAJOR.$d.$H$M$S"
+
+    echo "npx create-nx-workspace@$NEXT_VERSION" | pbcopy
+    echo "'create-nx-workspace' with the next local version has been copied to clipboard."
+    echo "Releasing $NEXT_VERSION to local registry..."
+
+    npm run nx-release $NEXT_VERSION -- --local
+}
+
+alias nxLR="local-nx-release"
+
+export NVM_DIR="$HOME/.nvm"
+
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+
+export PATH="/usr/local/opt/openjdk/bin:$PATH"
+
+# Fig post block. Keep at the bottom of this file.
+eval "$(fig init zsh post)"
+eval "$(starship init zsh)"
