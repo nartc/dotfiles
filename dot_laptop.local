@@ -33,5 +33,16 @@ if [ -f "$HOME/Brewfile.local" ]; then
   fi
 fi
 
+# Updating Keyboard hold and character
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
 
+# System Preferences > Keyboard >
+defaults write NSGlobalDomain KeyRepeat -int 1
+
+# System Preferences > Keyboard >
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Enable full keyboard access for all controls
+# (e.g. enable Tab in modal dialogs)
+defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 
