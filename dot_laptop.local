@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+echo "Installing Homebrew..."
+
+if ! command -v brew >/dev/null; then
+  curl -fsSL \
+    'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh' | sh
+  export PATH="/usr/local/bin:$PATH"
+fi
+
+echo
+echo "Installing chezmoi and applying dotfiles ..."
+brew bundle --file=- <<EOF
+    brew 'chezmoi'
+EOF
+
+if [ ! -f "$HOME/.config/chezmoi/chezmoi.toml" ]; then
+  chezmoi init --apply --verbose https://github.com/nartc/dotfiles.git
+  chmod 0600 "$HOME/.config/chezmoi/chezmoi.toml"
+fi
+
+echo
+echo "Running your customizations from ~/.laptop.local ..."
+
+if [ -f "$HOME/Brewfile.local" ]; then
+  echo "Installing tools and apps from Brewfile.local ..."
+  if brew bundle --file="$HOME/Brewfile.local"; then
+    echo "All items in Brewfile.local were installed successfully."
+  else
+    echo "Some items in Brewfile.local were not installed successfully."
+  fi
+fi
+
+
+
