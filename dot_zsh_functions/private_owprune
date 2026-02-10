@@ -1,0 +1,132 @@
+# ocean_worktree prune - Remove worktrees with gone upstream branches
+# Usage: owprune
+
+# Check if we're in the correct directory
+local current_dir expected_dir
+current_dir=$(realpath "$PWD" 2>/dev/null) || current_dir="$PWD"
+expected_dir=$(realpath "/Users/nartc/code/github/nrwl/ocean" 2>/dev/null) || expected_dir="/Users/nartc/code/github/nrwl/ocean"
+
+if [[ "$current_dir" != "$expected_dir" ]]; then
+  echo "Error: This command must be run from /Users/nartc/code/github/nrwl/ocean"
+  return 1
+fi
+
+local worktree_base="../ocean-worktrees"
+local -a worktrees_to_remove=()
+local -a branches_to_remove=()
+local -a directories_to_remove=()
+local gone_branches branch worktree_info abs_worktree_base dir_name
+
+echo "Fetching remote and pruning stale tracking branches..."
+git fetch --prune
+echo ""
+
+# Get list of branches with gone upstream (strip leading *, +, whitespace)
+gone_branches=$(git branch -vv | grep ': gone]' | sed 's/^[*+ ]*//' | awk '{print $1}')
+
+if [[ -z "$gone_branches" ]]; then
+  echo "No branches with gone upstream tracking found."
+  return 0
+fi
+
+# For each gone branch, check if it has an associated worktree
+echo "Scanning for worktrees with gone upstream branches..."
+echo ""
+
+abs_worktree_base=$(realpath "$worktree_base" 2>/dev/null)
+
+while IFS= read -r branch; do
+  [[ -z "$branch" ]] && continue
+
+  # Check if this branch has a worktree
+  worktree_info=$(git worktree list --porcelain | awk -v branch="refs/heads/$branch" '
+    /^worktree / { wt = substr($0, 10) }
+    /^branch / && $2 == branch { print wt }
+  ')
+
+  if [[ -n "$worktree_info" ]]; then
+    # Check if worktree is in ocean-worktrees directory
+    if [[ "$worktree_info" == "$abs_worktree_base"* ]]; then
+      dir_name=$(basename "$worktree_info")
+      worktrees_to_remove+=("$worktree_info")
+      branches_to_remove+=("$branch")
+      directories_to_remove+=("$dir_name")
+    fi
+  fi
+done <<< "$gone_branches"
+
+if [[ ${#worktrees_to_remove[@]} -eq 0 ]]; then
+  echo "No ocean worktrees found with gone upstream branches."
+  echo ""
+  echo "Branches with gone upstream (not in ocean-worktrees):"
+  echo "$gone_branches" | sed 's/^/  - /'
+  return 0
+fi
+
+# Display what will be removed
+echo "The following worktrees will be removed:"
+echo "=========================================="
+for i in {1..${#worktrees_to_remove[@]}}; do
+  echo ""
+  echo "  Directory: ${directories_to_remove[$i]}"
+  echo "  Branch:    ${branches_to_remove[$i]}"
+  echo "  Path:      ${worktrees_to_remove[$i]}"
+done
+echo ""
+echo "=========================================="
+echo "Total: ${#worktrees_to_remove[@]} worktree(s) to remove"
+echo ""
+
+# Ask for confirmation
+echo -n "Proceed with removal? [y/N] "
+read -r response
+
+if [[ ! "$response" =~ ^[Yy]$ ]]; then
+  echo "Aborted."
+  return 0
+fi
+
+echo ""
+
+# Remove each worktree and branch
+local failed=0
+for i in {1..${#worktrees_to_remove[@]}}; do
+  local worktree="${worktrees_to_remove[$i]}"
+  local branch="${branches_to_remove[$i]}"
+  local dir_name="${directories_to_remove[$i]}"
+
+  echo "Removing worktree: ${dir_name}..."
+
+  # Remove the worktree with git
+  if ! git worktree remove "$worktree" 2>/dev/null; then
+    echo "  Warning: git worktree remove failed, force removing..."
+    git worktree remove --force "$worktree" 2>/dev/null
+  fi
+
+  # Force remove directory if it still exists
+  if [[ -d "$worktree" ]]; then
+    echo "  Directory still exists, force removing..."
+    rm -rf "$worktree"
+  fi
+
+  # Remove the branch
+  if git branch -D "$branch" 2>/dev/null; then
+    echo "  ✓ Removed branch: ${branch}"
+  else
+    echo "  ✗ Failed to remove branch: ${branch}"
+    ((failed++))
+  fi
+
+  # Prune worktree metadata
+  git worktree prune 2>/dev/null
+
+  echo "  ✓ Removed worktree: ${dir_name}"
+  echo ""
+done
+
+if [[ $failed -eq 0 ]]; then
+  echo "Successfully pruned ${#worktrees_to_remove[@]} worktree(s)."
+else
+  echo "Completed with ${failed} error(s)."
+  return 1
+fi

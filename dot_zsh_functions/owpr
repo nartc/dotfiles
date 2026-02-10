@@ -1,0 +1,42 @@
+# ocean_worktree pr - Create a worktree from a PR branch or PR number
+# Usage: owpr <branch-name|pr-number>
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: owpr <branch-name|pr-number>"
+  echo "Examples:"
+  echo "  owpr feat/nx-cloud/storybook-for-ui-libs"
+  echo "  owpr 1234"
+  return 1
+fi
+
+local input="$1"
+local branch_name=""
+
+# Check if input is a PR number (digits only)
+if [[ "$input" =~ ^[0-9]+$ ]]; then
+  echo "Fetching branch name for PR #${input}..."
+  branch_name=$(gh pr view "$input" --json headRefName -q .headRefName 2>/dev/null)
+  if [[ -z "$branch_name" ]]; then
+    echo "Error: Could not find PR #${input} or failed to fetch branch name"
+    return 1
+  fi
+  echo "Found branch: ${branch_name}"
+else
+  branch_name="$input"
+fi
+
+# Fetch the remote to ensure we have the latest
+echo "Fetching from origin..."
+git fetch origin
+
+# Check if the remote branch exists
+if ! git show-ref --verify --quiet "refs/remotes/origin/${branch_name}"; then
+  echo "Error: Remote branch origin/${branch_name} does not exist"
+  return 1
+fi
+
+# Create directory name from branch (replace / with -)
+local directory_name="${branch_name//\//-}"
+
+# Pass through to owadd: directory, starting-point, --branch
+owadd "${directory_name}" "origin/${branch_name}" --branch "${branch_name}"

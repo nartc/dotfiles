@@ -1,0 +1,46 @@
+# Kill process tree by port number
+# Help message
+if [ "$1" = "-h" ]; then
+  echo "Usage: killport [-d] PORT"
+  echo "  Without -d: kills from root parent"
+  echo "  With -d: kills specified process and children"
+  return 0
+fi
+
+# Parse arguments
+local port=""
+local use_direct=0
+
+if [ "$1" = "-d" ]; then
+  use_direct=1
+  port="$2"
+else
+  port="$1"
+fi
+
+# Validate input
+if [ -z "$port" ]; then
+  echo "Error: PORT required"
+  return 1
+fi
+
+# Find PID using the port
+local pid=$(lsof -i :"$port" -t 2>/dev/null)
+
+if [ -z "$pid" ]; then
+  echo "Error: No process found using port $port"
+  return 1
+fi
+
+# If multiple PIDs found, use the first one
+pid=$(echo "$pid" | head -n 1)
+echo "Found process with PID $pid using port $port"
+
+# Use killtree function with the found PID
+if [ $use_direct -eq 1 ]; then
+  killtree -d "$pid"
+  return $?
+else
+  killtree "$pid"
+  return $?
+fi

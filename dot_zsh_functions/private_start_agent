@@ -1,0 +1,68 @@
+# Starts an NX cloud agent using the execution ID from prior.txt
+local prior_file="${PWD}/prior.txt"
+local execution_id=""
+local no_obfuscate=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-obfuscate)
+      no_obfuscate=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: start_agent [--no-obfuscate]"
+      return 1
+      ;;
+  esac
+done
+
+# Try to read from prior.txt if it exists
+if [[ -f "$prior_file" ]] && read -r number < "$prior_file" && [[ "$number" =~ ^[0-9]+$ ]]; then
+  execution_id=$number
+else
+  echo "Error: prior.txt not found or contains invalid number"
+  return 1
+fi
+
+# Run in a subshell to keep environment variables local
+(
+  # Create a unique timestamp for this run
+  local timestamp=$(date +"%Y%m%d_%H%M%S")
+
+  # Create unique cache directory
+  local cache_dir="${PWD}/tmp/nx-cache/${execution_id}_${timestamp}"
+  mkdir -p "$cache_dir"
+
+  # Set the environment variables
+  export NX_CI_EXECUTION_ID=$execution_id
+  export CI=true
+  export NX_BRANCH=ct-test
+  export NX_VERBOSE_LOGGING=true
+  export NX_CLOUD_FORCE_REVALIDATE=true
+  export NX_ALLOW_NON_CACHEABLE_DTE=true
+  export NX_CLOUD_USE_NEW_TASK_APIS=true
+  export NX_DAEMON=false
+  export NO_OBFUSCATE=$no_obfuscate
+  export NX_CLOUD_E2E_SKIP_CLEAN_UP=true
+  export NX_CACHE_DIRECTORY="$cache_dir"
+  export NX_CLOUD_ENABLE_METRICS_COLLECTION=true
+  export NX_CLOUD_METRICS_DIRECTORY="/tmp"
+  export NX_NATIVE_LOGGING="trace"
+
+  echo "Using cache directory: $cache_dir"
+
+  # Start the agent
+  local logs_dir="${PWD}/tmp/nx-agent-logs"
+  mkdir -p "$logs_dir"
+
+  # Create a unique filename with timestamp and execution ID
+  local log_file="${logs_dir}/nx-agent_${execution_id}_${timestamp}.log"
+
+  echo "Starting NX Cloud agent for execution ID: ${execution_id}"
+  echo "Logging output to: ${log_file}"
+
+  # Start the agent and pipe output to the log file
+  # Use tee to display output in terminal while also saving to file
+  npx nx-cloud start-agent | tee "$log_file"
+)

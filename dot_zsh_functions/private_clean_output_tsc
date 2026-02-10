@@ -1,0 +1,124 @@
+# Clean out_tsc directory
+# Usage:
+#   clean_output_tsc [path] [--dir-name=<dir_name>] [--recursive] [--yes]
+#
+# Options:
+#   path                 Path (relative to current directory). Default: current directory
+#   --dir-name=<dir_name> Directory name to clean. Default: out-tsc
+#   --recursive          If specified, recursively clean all matching directories
+#   --yes                Skip confirmation prompts and automatically say yes to all
+
+local path="."
+local dir_name="out-tsc"
+local recursive=false
+local auto_yes=false
+
+# Check if first argument is a path (not a flag)
+if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+  path="$1"
+  shift
+fi
+
+# Parse named arguments
+for arg in "$@"; do
+  case $arg in
+    --dir-name=*)
+      dir_name="${arg#*=}"
+      ;;
+    --recursive)
+      recursive=true
+      ;;
+    --yes)
+      auto_yes=true
+      ;;
+    *)
+      echo "Unknown option: $arg"
+      echo "Usage: clean_output_tsc [path] [--dir-name=<dir_name>] [--recursive] [--yes]"
+      return 1
+      ;;
+  esac
+done
+
+# Check if path exists
+if [[ ! -d "$path" ]]; then
+  echo "Error: Path '$path' does not exist or is not a directory."
+  return 1
+fi
+
+# If recursive is true, find all matching directories and clean them
+if [[ "$recursive" == "true" ]]; then
+  echo "Recursively cleaning all '$dir_name' directories under '$path'..."
+
+  # Use the full path to find command
+  local dirs=()
+  while IFS= read -r dir; do
+    dirs+=("$dir")
+  done < <(/usr/bin/find "$path" -type d -name "$dir_name")
+
+  if [[ ${#dirs[@]} -eq 0 ]]; then
+    echo "No '$dir_name' directories found under '$path'."
+    return 0
+  fi
+
+  # Display what will be cleaned and ask for confirmation if not auto_yes
+  echo "The following directories will be cleaned:"
+  for dir in "${dirs[@]}"; do
+    echo "  - $dir"
+  done
+
+  if [[ "$auto_yes" != "true" ]]; then
+    echo -n "Proceed with cleaning? [y/N] "
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+      echo "Operation cancelled."
+      return 0
+    fi
+  fi
+
+  # Clean the directories
+  for dir in "${dirs[@]}"; do
+    if [[ -d "$dir" ]]; then
+      echo "Cleaning '$dir'..."
+      # Use a safer approach to delete contents
+      if [[ -n "$dir" && "$dir" != "/" ]]; then
+        if [[ "$auto_yes" == "true" ]]; then
+          # Use zsh's builtin nocorrect to prevent prompts
+          nocorrect /bin/rm -rf "$dir"/* 2>/dev/null || true
+        else
+          /bin/rm -rf "$dir"/* 2>/dev/null || true
+        fi
+      fi
+    fi
+  done
+
+  echo "Recursive cleaning complete."
+else
+  # Non-recursive mode - just clean the specified directory
+  local target_dir="$path/$dir_name"
+
+  if [[ -d "$target_dir" ]]; then
+    if [[ "$auto_yes" != "true" ]]; then
+      echo -n "Clean '$target_dir'? [y/N] "
+      read -r response
+      if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Operation cancelled."
+        return 0
+      fi
+    fi
+
+    echo "Cleaning '$target_dir'..."
+    # Use a safer approach to delete contents
+    if [[ -n "$target_dir" && "$target_dir" != "/" ]]; then
+      if [[ "$auto_yes" == "true" ]]; then
+        # Use zsh's builtin nocorrect to prevent prompts
+        nocorrect /bin/rm -rf "$target_dir"/* 2>/dev/null || true
+      else
+        /bin/rm -rf "$target_dir"/* 2>/dev/null || true
+      fi
+    fi
+    echo "Cleaning complete."
+  else
+    echo "Error: Directory '$target_dir' does not exist."
+    return 1
+  fi
+fi

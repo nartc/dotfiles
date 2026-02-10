@@ -1,0 +1,40 @@
+# Port-forward to Workflow Controller
+echo "Getting cluster credentials..."
+if ! USE_GKE_GCLOUD_AUTH_PLUGIN=True gcloud container clusters get-credentials \
+  nxclouddevelopment-workflows-cluster --zone us-central1 --project nxclouddevelopment 2>/dev/null; then
+  echo "Error: Failed to get cluster credentials"
+  return 1
+fi
+
+# Find the workflow controller pod
+local pod_name=$(kubectl get pods -n nx-cloud-workflows --no-headers | grep 'nx-cloud-workflow-controller' | grep 'Running' | head -1 | awk '{print $1}')
+
+if [[ -z "$pod_name" ]]; then
+  echo "✗ No running nx-cloud-workflow-controller pod found"
+  return 1
+fi
+
+echo "Starting Workflow Controller port-forward to ${pod_name}..."
+kubectl port-forward -n nx-cloud-workflows "$pod_name" 9005:9000 &
+local pf_pid=$!
+
+# Wait for port to be ready
+local max_attempts=10
+local attempt=0
+
+while [[ $attempt -lt $max_attempts ]]; do
+  if nc -z localhost 9005 2>/dev/null; then
+    echo "✓ Workflow Controller: ${pod_name} -> localhost:9005"
+    echo "\nPress Ctrl+C to stop"
+    trap "echo '\nStopping...'; kill $pf_pid 2>/dev/null; trap - INT TERM; return 0" INT TERM
+    wait $pf_pid
+    trap - INT TERM
+    return 0
+  fi
+  sleep 0.3
+  ((attempt++))
+done
+
+echo "✗ Failed to connect to Workflow Controller"
+kill $pf_pid 2>/dev/null
+return 1

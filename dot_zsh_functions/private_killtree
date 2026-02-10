@@ -1,0 +1,55 @@
+# Kill process tree function
+# Help message
+if [ "$1" = "-h" ]; then
+  echo "Usage: killtree [-d] PID"
+  echo "  Without -d: kills from root parent"
+  echo "  With -d: kills specified PID and children"
+  return 0
+fi
+
+# Parse arguments
+local pid=""
+local use_direct=0
+
+if [ "$1" = "-d" ]; then
+  use_direct=1
+  pid="$2"
+else
+  pid="$1"
+fi
+
+# Validate input
+if [ -z "$pid" ]; then
+  echo "Error: PID required"
+  return 1
+fi
+
+# Check if PID exists
+if ! ps -p "$pid" > /dev/null 2>&1; then
+  echo "Error: PID $pid not found"
+  return 1
+fi
+
+# Find target PID
+local target="$pid"
+if [ $use_direct -eq 0 ]; then
+  while true; do
+    local parent=$(ps -o ppid= -p "$target" | tr -d " ")
+    [ "$parent" = "1" -o -z "$parent" ] && break
+    target="$parent"
+  done
+  echo "Root parent PID: $target"
+fi
+
+# Kill process tree
+echo "Killing process tree..."
+pkill -P "$target" && kill "$target"
+sleep 1
+ps -p "$target" > /dev/null 2>&1 && {
+  echo "Using force kill..."
+  pkill -9 -P "$target" && kill -9 "$target"
+}
+
+# Return success if process no longer exists
+ps -p "$target" > /dev/null 2>&1 || return 0
+return 1

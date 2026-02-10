@@ -1,0 +1,66 @@
+# Port-forward to MongoDB primary replica
+local replicas=(0 1 2)
+local connection_string="mongodb://admin-user:admin123@localhost:27016/nrwl-api?ssl=false&directConnection=true"
+
+if ! command -v mongosh &> /dev/null; then
+  echo "Error: mongosh not found. Please install MongoDB Shell"
+  return 1
+fi
+
+echo "Getting cluster credentials..."
+if ! USE_GKE_GCLOUD_AUTH_PLUGIN=True gcloud container clusters get-credentials \
+  nx-cloud-application --zone us-east1 --project nxclouddevelopment 2>/dev/null; then
+  echo "Error: Failed to get cluster credentials"
+  return 1
+fi
+
+for replica in "${replicas[@]}"; do
+  local pod_name="cloud-mongodb-${replica}"
+  echo "\nTrying replica: ${pod_name}..."
+
+  kubectl port-forward "$pod_name" 27016:27017 > /dev/null 2>&1 &
+  local pf_pid=$!
+
+  # Wait for port to be ready
+  local max_attempts=10
+  local attempt=0
+  local port_ready=false
+
+  while [[ $attempt -lt $max_attempts ]]; do
+    if ! kill -0 $pf_pid 2>/dev/null; then
+      break
+    fi
+    if nc -z localhost 27016 2>/dev/null; then
+      port_ready=true
+      break
+    fi
+    sleep 0.3
+    ((attempt++))
+  done
+
+  if [[ "$port_ready" != "true" ]]; then
+    echo "✗ Failed to connect to ${pod_name}"
+    kill $pf_pid 2>/dev/null
+    wait $pf_pid 2>/dev/null
+    continue
+  fi
+
+  echo "Checking if ${pod_name} is primary..."
+  local is_primary=$(mongosh "$connection_string" --quiet --eval "db.hello().isWritablePrimary" 2>/dev/null)
+
+if [[ "$is_primary" == "true" ]]; then
+      echo "✓ MongoDB: ${pod_name} (primary) -> localhost:27016"
+      echo "\nPress Ctrl+C to stop"
+      trap "echo '\nStopping...'; kill $pf_pid 2>/dev/null; trap - INT TERM; return 0" INT TERM
+      wait $pf_pid
+      trap - INT TERM
+      return 0
+  else
+    echo "✗ ${pod_name} is not primary"
+    kill $pf_pid 2>/dev/null
+    wait $pf_pid 2>/dev/null
+  fi
+done
+
+echo "\nError: Could not find primary replica"
+return 1

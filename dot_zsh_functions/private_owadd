@@ -1,0 +1,134 @@
+# ocean_worktree add - Create a new git worktree for ocean project
+# Usage: owadd <directory-name> [starting-point] [--branch <branch-name>]
+
+# Check if we're in the correct directory
+local current_dir expected_dir
+current_dir=$(realpath "$PWD" 2>/dev/null) || current_dir="$PWD"
+expected_dir=$(realpath "/Users/nartc/code/github/nrwl/ocean" 2>/dev/null) || expected_dir="/Users/nartc/code/github/nrwl/ocean"
+
+if [[ "$current_dir" != "$expected_dir" ]]; then
+  echo "Error: This command must be run from /Users/nartc/code/github/nrwl/ocean"
+  return 1
+fi
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: owadd <directory-name> [starting-point] [--branch <branch-name>]"
+  echo "Examples:"
+  echo "  owadd my-feature                    # branch: my-feature, starting from: main"
+  echo "  owadd my-feature develop             # branch: my-feature, starting from: develop"
+  echo "  owadd my-dir --branch feat/new-one  # branch: feat/new-one, directory: my-dir"
+  return 1
+fi
+
+local directory_name=""
+local branch_name=""
+local starting_point="main"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --branch)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --branch requires a value"
+        return 1
+      fi
+      branch_name="$1"
+      shift
+      ;;
+    *)
+      if [[ -z "$directory_name" ]]; then
+        directory_name="$1"
+      elif [[ -z "$starting_point" ]] || [[ "$starting_point" == "main" ]]; then
+        starting_point="$1"
+      else
+        echo "Error: Too many arguments"
+        return 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# If no branch name specified, use directory name
+if [[ -z "$branch_name" ]]; then
+  branch_name="$directory_name"
+fi
+
+# Construct the worktree path
+local worktree_path="../ocean-worktrees/${directory_name}"
+
+# Check if branch already exists
+if git show-ref --verify --quiet "refs/heads/${branch_name}"; then
+  echo "Branch ${branch_name} already exists. Creating worktree from existing branch."
+  echo "Creating worktree: git worktree add ${worktree_path} ${branch_name}"
+  git worktree add "${worktree_path}" "${branch_name}"
+else
+  echo "Branch ${branch_name} does not exist. Creating new branch from ${starting_point}."
+  echo "Creating worktree: git worktree add -b ${branch_name} ${worktree_path} ${starting_point}"
+  git worktree add -b "${branch_name}" "${worktree_path}" "${starting_point}"
+fi
+
+# Check if worktree creation was successful
+if [[ $? -eq 0 ]]; then
+  echo "Copying gitignored files..."
+
+  # Copy .env if it exists
+  if [[ -f "env.override" ]]; then
+    cp "env.override" "${worktree_path}/"
+    echo "  ✓ Copied env.override"
+  fi
+
+  # Copy CLAUDE.md if it exists
+  if [[ -f "CLAUDE.md" ]]; then
+    cp "CLAUDE.md" "${worktree_path}/"
+    echo "  ✓ Copied CLAUDE.md"
+  fi
+
+  # Copy .claude directory if it exists
+  if [[ -d ".claude" ]]; then
+    cp -r ".claude" "${worktree_path}/"
+    echo "  ✓ Copied .claude directory"
+  fi
+
+  # Copy .windsurfrules if it exists
+  if [[ -f ".windsurfrules" ]]; then
+    cp ".windsurfrules" "${worktree_path}/"
+    echo "  ✓ Copied .windsurfrules"
+  fi
+
+  # Copy .idea/runConfigurations directory if it exists
+  if [[ -d ".idea/runConfigurations" ]]; then
+    # Create .idea directory in worktree if it doesn't exist
+    mkdir -p "${worktree_path}/.idea"
+    cp -r ".idea/runConfigurations" "${worktree_path}/.idea/"
+    echo "  ✓ Copied .idea/runConfigurations directory"
+  fi
+
+  # Copy .idea/prettier.xml if it exists
+  if [[ -f ".idea/prettier.xml" ]]; then
+    # Create .idea directory in worktree if it doesn't exist
+    mkdir -p "${worktree_path}/.idea"
+    cp ".idea/prettier.xml" "${worktree_path}/.idea/"
+    echo "  ✓ Copied .idea/prettier.xml"
+  fi
+
+  # Copy .idea/codeStyles directory if it exists
+  if [[ -d ".idea/codeStyles" ]]; then
+    mkdir -p "${worktree_path}/.idea"
+    cp -r ".idea/codeStyles" "${worktree_path}/.idea/"
+    echo "  ✓ Copied .idea/codeStyles directory"
+  fi
+
+  # Copy .idea/httpRequests directory if it exists
+  if [[ -d ".idea/httpRequests" ]]; then
+    mkdir -p "${worktree_path}/.idea"
+    cp -r ".idea/httpRequests" "${worktree_path}/.idea/"
+    echo "  ✓ Copied .idea/httpRequests directory"
+  fi
+
+  echo "Worktree created successfully at ${worktree_path}"
+else
+  echo "Failed to create worktree"
+  return 1
+fi

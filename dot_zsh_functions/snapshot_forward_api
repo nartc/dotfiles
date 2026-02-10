@@ -1,0 +1,40 @@
+# Port-forward to NX API
+echo "Getting cluster credentials..."
+if ! USE_GKE_GCLOUD_AUTH_PLUGIN=True gcloud container clusters get-credentials \
+  nx-cloud-application --zone us-east1 --project nxclouddevelopment 2>/dev/null; then
+  echo "Error: Failed to get cluster credentials"
+  return 1
+fi
+
+# Find first running nx-api pod
+local pod_name=$(kubectl get pods -n default --no-headers | grep 'nx-cloud-nx-api' | grep 'Running' | head -1 | awk '{print $1}')
+
+if [[ -z "$pod_name" ]]; then
+  echo "✗ No running nx-cloud-nx-api pod found"
+  return 1
+fi
+
+echo "Starting NX API port-forward to ${pod_name}..."
+kubectl port-forward -n default "$pod_name" 4205:4203 &
+local pf_pid=$!
+
+# Wait for port to be ready
+local max_attempts=10
+local attempt=0
+
+while [[ $attempt -lt $max_attempts ]]; do
+  if nc -z localhost 4205 2>/dev/null; then
+    echo "✓ NX API: ${pod_name} -> localhost:4205"
+    echo "\nPress Ctrl+C to stop"
+    trap "echo '\nStopping...'; kill $pf_pid 2>/dev/null; trap - INT TERM; return 0" INT TERM
+    wait $pf_pid
+    trap - INT TERM
+    return 0
+  fi
+  sleep 0.3
+  ((attempt++))
+done
+
+echo "✗ Failed to connect to NX API"
+kill $pf_pid 2>/dev/null
+return 1

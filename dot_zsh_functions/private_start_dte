@@ -1,0 +1,89 @@
+# Manages NX distributed task execution (DTE)
+local usage="Usage: start_dte <command>
+
+Manages NX distributed task execution (DTE) by incrementing the execution ID
+and setting up environment variables before running NX commands.
+
+Arguments:
+  <command>    The NX command to execute (required)
+
+Options:
+  --no-obfuscate         Set NO_OBFUSCATE environment variable to true
+
+Examples:
+  start_dte 'nx run-many -t e2e-ci --dte'
+  start_dte 'nx run-many -t lint --dte'
+  start_dte 'nx run-many -t typecheck package test test-ci testjs lint e2e-ci --dte'
+  start_dte 'nx run-many -t e2e-ci --graph=output-graph-e2eci.json'
+  start_dte --no-obfuscate 'nx run-many -t e2e-ci --dte'
+"
+
+local no_obfuscate=false
+local command=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-obfuscate)
+      no_obfuscate=true
+      shift
+      ;;
+    --help)
+      echo "$usage"
+      return 0
+      ;;
+    *)
+      command="$1"
+      shift
+      break
+      ;;
+  esac
+done
+
+# Add any remaining arguments to the command
+while [[ $# -gt 0 ]]; do
+  command="$command $1"
+  shift
+done
+
+if [[ -z "$command" ]]; then
+  echo "$usage"
+  return 0
+fi
+
+# Default value if file doesn't exist
+local value=1
+local prior_file="${PWD}/prior.txt"
+
+# Try to read from prior.txt if it exists
+if [[ -f "$prior_file" ]]; then
+  # Read the value and check if it's a valid number
+  if read -r number < "$prior_file" && [[ "$number" =~ ^[0-9]+$ ]]; then
+    value=$number
+  fi
+fi
+
+# Increment the value
+((value++))
+
+# Write the new value back to file
+echo $value > "$prior_file"
+
+# Run in a subshell to keep environment variables local
+(
+  # Set the environment variables
+  export CI=true
+  export NX_CI_EXECUTION_ID=$value
+  export NX_BRANCH=ct-test
+
+  export NX_VERBOSE_LOGGING=true
+  export NX_CLOUD_FORCE_REVALIDATE=true
+  export NX_ALLOW_NON_CACHEABLE_DTE=true
+  export NX_CLOUD_USE_NEW_TASK_APIS=true
+  export NX_DAEMON=false
+  export NO_OBFUSCATE=$no_obfuscate
+  export NX_CLOUD_E2E_SKIP_CLEAN_UP=true
+
+  # Run the command with provided arguments
+  eval "npx $command"
+)

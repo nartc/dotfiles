@@ -1,0 +1,83 @@
+# Shows the process tree for a process using a specific port
+# Help message
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  echo "Usage: showtree_port PORT"
+  echo "  Shows the process tree for a process using the specified port"
+  echo ""
+  echo "Arguments:"
+  echo "  PORT        The port number to find the process for"
+  echo ""
+  echo "Examples:"
+  echo "  showtree_port 3000"
+  echo "  showtree_port 8080"
+  return 0
+fi
+
+# Validate input
+local port="$1"
+if [ -z "$port" ]; then
+  echo "Error: PORT required"
+  echo "Usage: showtree_port PORT"
+  return 1
+fi
+
+# Check if port is a number
+if ! [[ "$port" =~ ^[0-9]+$ ]]; then
+  echo "Error: PORT must be a number"
+  return 1
+fi
+
+# Find PID using the port
+local pid=$(lsof -i :"$port" -t 2>/dev/null)
+
+if [ -z "$pid" ]; then
+  echo "Error: No process found using port $port"
+  return 1
+fi
+
+# If multiple PIDs found, use the first one
+pid=$(echo "$pid" | head -n 1)
+echo "Found process with PID $pid using port $port"
+
+# Show basic process info
+echo "\nProcess details:"
+ps -p "$pid" -o pid,ppid,user,%cpu,%mem,command
+
+# Determine which process tree command to use
+if command -v pstree >/dev/null 2>&1; then
+  echo "\nProcess tree (using pstree):"
+  pstree -p "$pid"
+elif command -v ps >/dev/null 2>&1; then
+  # If pstree is not available, use ps with some formatting
+  echo "\nProcess hierarchy (using ps):"
+
+  # Find all child processes
+  local children=$(ps -eo pid,ppid | awk -v parent="$pid" '
+    function find_children(pid,    i, child) {
+      for (i=1; i<=NR; i++) {
+        if (ppids[i] == pid) {
+          child = pids[i]
+          print child
+          find_children(child)
+        }
+      }
+    }
+
+    # Store all PIDs and PPIDs
+    { pids[NR]=$1; ppids[NR]=$2 }
+
+    END { find_children(parent) }
+  ')
+
+  # Show process and its children
+  ps -o pid,ppid,user,%cpu,%mem,command -p "$pid" $(echo "$children")
+else
+  echo "Error: Neither pstree nor ps command found"
+  return 1
+fi
+
+# Show open files and network connections for the process
+echo "\nOpen network connections:"
+lsof -i -a -p "$pid" 2>/dev/null
+
+return 0
