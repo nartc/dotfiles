@@ -1,0 +1,75 @@
+" .ideavimrc is a configuration file for IdeaVim plugin. It uses
+"   the same commands as the original .vimrc configuration.
+" You can find a list of commands here: https://jb.gg/h38q75
+" Find more examples here: https://jb.gg/share-ideavimrc
+
+let mapleader=" "
+
+" --- Enable IdeaVim plugins https://jb.gg/ideavim-plugins
+set surround
+set commentary
+set argtextobj
+set easymotion
+set textobj-entire
+set ReplaceWithRegister
+set NERDTree
+set highlightedyank
+set exchange
+
+set scrolloff=5
+set incsearch
+set nu
+set ideajoin
+set ideastatusicon=gray
+set relativenumber number
+
+" # Use system clipboard by default for y and p operations
+
+" # nnoremap yy "+yy
+" # vnoremap y "+y
+" # vnoremap x "+x
+" # vnoremap c "+c
+"
+" # nnoremap p "+p
+" # vnoremap p "+p
+" # nnoremap P "+P
+" # vnoremap P "+P
+
+" # Allow access to original y and p operations with leader key, e.g. to use registers
+
+" # nnoremap <leader>yy yy
+" # vnoremap <leader>y y
+" # vnoremap <leader>x x
+" # vnoremap <leader>c c
+"
+" # nnoremap <leader>p p
+" # vnoremap <leader>p p
+" # nnoremap <leader>P P
+" # vnoremap <leader>P P
+"
+" # Allow to cut to system clipboard by using leader key with d
+"
+" # nnoremap <leader>dd "+dd
+" # vnoremap <leader>d "+d
+
+" Don't use Ex mode, use Q for formatting.
+map Q gq
+
+"" -- Map IDE actions to IdeaVim -- https://jb.gg/abva4t
+
+"" Map <leader>d to start debug
+"map <leader>d <Action>(Debug)
+
+map :w :wa
+map :W :w
+
+map <leader>b <Action>(ToggleLineBreakpoint)
+map <leader>f <Plug>(easymotion-s)
+map <leader>F <Plug>(easymotion-f)
+map <S-Space> <Action>(GotoNextError)
+map <leader>cr <Action>(RenameElement)
+map <leader>ca <Action>(ShowIntentionActions)
+map <leader>e <Action>(SelectInProjectView)
+map <C-k> <Action>(ShowHoverInfo)
+map <leader><leader> <Action>(RecentFiles)
+map <leader>t <Action>(ActivateTerminalToolWindow)
