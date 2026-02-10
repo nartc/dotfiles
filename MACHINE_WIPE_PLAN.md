@@ -337,8 +337,8 @@ Projects stored in IndexedDB (not exportable). Manual workaround:
 2. For each Project you want to keep:
    - Copy Project instructions
    - Copy any important context/artifacts
-   - Save to `~/dotfiles/claude-projects/<project-name>.md`
-3. Add to chezmoi: `chezmoi add ~/dotfiles/claude-projects/`
+   - Save to `~/.config/claude-projects/<project-name>.md`
+3. Add to chezmoi: `chezmoi add ~/.config/claude-projects/`
 
 ### 5.3 JetBrains IDE Settings
 1. Open any JetBrains IDE (IntelliJ, WebStorm, etc.)
@@ -354,8 +354,8 @@ Projects stored in IndexedDB (not exportable). Manual workaround:
 ### 5.5 Shell History (Optional)
 ```bash
 # Export recent history (encrypted — history may contain tokens/passwords in command args)
-tail -n 3000 ~/.zsh_history > ~/dotfiles/zsh_history_backup.txt
-chezmoi add --encrypt ~/dotfiles/zsh_history_backup.txt
+tail -n 3000 ~/.zsh_history > ~/.config/zsh_history_backup.txt
+chezmoi add --encrypt ~/.config/zsh_history_backup.txt
 ```
 
 ---
