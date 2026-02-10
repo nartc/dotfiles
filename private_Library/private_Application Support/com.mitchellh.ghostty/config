@@ -1,0 +1,39 @@
+# font-family = Iosevka
+# font-family = MesloLGSDZ Nerd Font Mono
+# font-family = GeistMono Nerd Font Mono
+# font-family = ZedMono Nerd Font Mono
+# font-family = DejaVuSansM Nerd Font Mono
+# font-family = CommitMono Nerd Font Mono
+# font-family = 0xProto Nerd Font Mono
+font-family = Adwaita Nerd Font Mono
+# font-family = Maple Mono
+# font-family = UbuntuMono Nerd Font Mono
+# font-family = Hack Nerd Font Mono
+font-size = 18
+# font-size = 22
+confirm-close-surface = false
+theme = dark:vscode-dark,light:vscode-light
+copy-on-select = clipboard
+macos-titlebar-style = tabs
+shell-integration-features = no-cursor
+
+# enables M-H/M-L tmux bindings
+macos-option-as-alt = true
+
+# OSC 52 for tmux-yank
+clipboard-read = allow
+clipboard-write = allow
+
+# tmux handles history
+scrollback-limit = 1000
+
+# font rendering
+font-thicken = true
+adjust-cell-height = 2
+
+# aesthetics
+window-padding-x = 4
+window-padding-y = 4
+
+# neovim controls cursor
+cursor-style-blink = false
