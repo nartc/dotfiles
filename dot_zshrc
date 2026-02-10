@@ -1,0 +1,176 @@
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+
+
+
+# Download zinit if it's not there
+if [ ! -d "$ZINIT_HOME" ]; then
+	mkdir -p "$(dirname $ZINIT_HOME)"
+	git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+
+# source/load zinit
+source "${ZINIT_HOME}/zinit.zsh"
+
+# zinit plugins (turbo mode - load after prompt)
+zinit wait lucid for \
+  atinit"zicompinit; zicdreplay" \
+  zsh-users/zsh-syntax-highlighting \
+  zsh-users/zsh-completions \
+  zsh-users/zsh-autosuggestions \
+  Aloxaf/fzf-tab
+# zinit light jeffreytse/zsh-vi-mode
+
+zinit snippet OMZP::git
+
+# load completions (cached - only rebuild once per day)
+autoload -Uz compinit
+if [[ -f ~/.zcompdump && $(date +'%j') == $(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null) ]]; then
+  compinit -C
+else
+  compinit
+fi
+
+zinit cdreplay -q
+
+export EDITOR=nvim
+
+autoload -z edit-command-line
+zle -N edit-command-line
+
+# keybindings
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
+bindkey '^e' edit-command-line
+
+# History
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+# completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+
+# shell integrations (cached)
+FZF_CACHE=~/.cache/fzf.zsh
+[[ ! -f $FZF_CACHE || $(fzf --version) != $(head -1 $FZF_CACHE 2>/dev/null) ]] && { echo "# $(fzf --version)"; fzf --zsh; } > $FZF_CACHE
+source $FZF_CACHE
+
+# aliases
+alias ..="cd .."
+alias zshconfig="nvim ~/.zshrc"
+alias zshsource="source ~/.zshrc"
+alias termconfig="nvim ~/Library/Application\ Support/com.mitchellh.ghostty/config"
+alias nvimconfig="cd ~/.config/nvim && nvim ."
+alias v=nvim
+alias c=clear
+alias e="exit"
+alias rm="rm -rf"
+alias lg=lazygit
+alias ls='ls -lAhF --color'
+alias ghc="cd ~/code/github"
+# alias ga="git add"
+alias gpup="git push --set-upstream origin"
+alias gfu="git fetch upstream"
+alias grbu="git rebase upstream"
+alias grb="git rebase"
+# alias gp="git push"
+alias gpf="git push --force-with-lease"
+alias gco="git checkout"
+alias glp="git pull --prune"
+alias ncu="pnpm --package=npm-check-updates dlx ncu --format group"
+alias pnx="pnpm exec"
+# list all available simulators
+alias listios="xcrun simctl list devices"
+alias sandbox="cd ~/code/sandbox"
+
+eval "$(fnm env --use-on-cd)"
+export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+
+# Java version switcher function
+setjava() {
+    case $1 in
+        17)
+            export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+            export PATH="/opt/homebrew/opt/openjdk@17/bin:${PATH//\/opt\/homebrew\/opt\/openjdk@17\/bin:/}"
+            ;;
+        23)
+            export JAVA_HOME=/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home
+            export PATH="/opt/homebrew/opt/openjdk/bin:${PATH//\/opt\/homebrew\/opt\/openjdk\/bin:/}"
+            ;;
+        *)
+            echo "Usage: setjava [17|23]"
+            return 1
+            ;;
+    esac
+    echo "Switched to Java $1:"
+    java -version
+}
+
+
+# Autoload custom functions (lazy-loaded on first use)
+fpath=(~/.zsh_functions $fpath)
+autoload -Uz killtree killport showtree_port start_dte start_agent clean_output_tsc snapshot_forward snapshot_forward_api snapshot_forward_workflow owadd owremove owprune owpr
+
+# bun completions
+[ -s "/Users/nartc/.bun/_bun" ] && source "/Users/nartc/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# elixir
+export PATH="$PATH:/$HOME/.elixir-install/installs/elixir/1.18.3-otp-27/bin"
+export PATH="$PATH:/$HOME/.elixir-install/installs/otp/27.2.3/bin"
+
+# Added by Windsurf
+export PATH="/Users/nartc/.codeium/windsurf/bin:$PATH"
+
+# go 
+export PATH="$PATH:$GOROOT/bin"
+export PATH="$PATH:$GOROOT/bin/go"
+
+# eval "$(oh-my-posh init zsh --config $(brew --prefix oh-my-posh)/themes/json.omp.json)"
+eval "$(oh-my-posh init zsh --config /opt/homebrew/opt/oh-my-posh/themes/negligible.omp.json)"
+
+. "$HOME/.local/bin/env"
+export GOOGLE_CLOUD_PROJECT="nartc-gemini"
+source <(COMPLETE=zsh tms)
+
+gh() {
+    if [[ "$1" == "auth" && "$2" == "token" ]]; then
+        echo "🔒 Token display blocked for security"
+    else 
+        command gh "$@"
+    fi
+}
+
+export PATH="/Users/nartc/Library/Python/3.9/bin:$PATH"
+
+# pyenv (lazy-loaded)
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+pyenv() {
+  unset -f pyenv python python3 pip pip3
+  eval "$(command pyenv init -)"
+  pyenv "$@"
+}
+python() { unset -f pyenv python python3 pip pip3; eval "$(command pyenv init -)"; python "$@"; }
+python3() { unset -f pyenv python python3 pip pip3; eval "$(command pyenv init -)"; python3 "$@"; }
+pip() { unset -f pyenv python python3 pip pip3; eval "$(command pyenv init -)"; pip "$@"; }
+pip3() { unset -f pyenv python python3 pip pip3; eval "$(command pyenv init -)"; pip3 "$@"; }
+
+export SLASH_COMMAND_TOOL_CHAR_BUDGET=50000
+
+# Quick claude prompt
+alias '?'='noglob claude --model=sonnet -p '
