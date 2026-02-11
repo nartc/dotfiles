@@ -1,7 +1,7 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
 
-brew bundle --no-lock --file=/dev/stdin <<EOF
+brew bundle --file=/dev/stdin <<EOF
 # Taps
 tap "derailed/k9s"
 tap "jandedobbeleer/oh-my-posh"
@@ -62,7 +62,6 @@ cask "1password-cli"
 cask "brave-browser"
 cask "claude"
 cask "cleanshot"
-cask "cloudflare-warp"
 cask "cursor"
 cask "discord"
 cask "dotnet-sdk"
@@ -90,10 +89,8 @@ cask "slack"
 cask "spotify"
 cask "superhuman"
 cask "superwhisper"
-cask "telegram"
 cask "visual-studio-code"
 cask "zed"
-cask "zen-browser"
 cask "zoom"
 
 # ─────────────────────────────────────────────
