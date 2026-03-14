@@ -20,8 +20,23 @@
               "icon": "lucide-file",
               "title": "Welcome"
             }
+          },
+          {
+            "id": "3f8f7e7fa2893839",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "create-nx-workspace.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "create-nx-workspace"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       },
       {
         "id": "5271ffe9f76b62de",
@@ -199,8 +214,11 @@
       "bases:Create new base": false
     }
   },
-  "active": "dac5362cdcc6e7ea",
+  "active": "c4315e003fae952e",
   "lastOpenFiles": [
-    "Welcome.md"
+    "create-nx-workspace.md",
+    "Welcome.md",
+    "Templates/Daily Note Template.md",
+    "Templates"
   ]
 }

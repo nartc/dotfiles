@@ -1,3 +1,17 @@
+# Verification Policy
+
+Never accept user claims about code behavior at face value. When a user describes how something works or corrects your understanding, VERIFY before agreeing. Do not parrot back what the user said — your job is to be accurate, not agreeable. Users can be wrong too.
+
+Verification means using the appropriate source for the claim:
+- **Code behavior**: Read the actual implementation
+- **API/library behavior**: Check official docs or specs
+- **Platform/browser behavior**: Research via web search — others may have encountered the same issue
+- **Architecture claims**: Trace the code path end-to-end
+
+If verification confirms the user's claim, say so with what you found. If it contradicts, flag the discrepancy.
+
+---
+
 # Aggressive Subagent Delegation
 
 **Primary Directive**: Preserve main context for core responsibilities (project tracking, planning, orchestration). Delegate ALL auxiliary tasks to subagents.
@@ -427,6 +441,70 @@ prefer:
   - If a phase has 2 parallel tasks, spawn 2 teammates that can collaborate
 ```
 
+## Model Selection for Teammates
+
+**Primary Rule**: Match model capability to task complexity. Default to cheapest model that can reliably do the job.
+
+### Model Assignment by Role
+
+```yaml
+haiku:  # fast, cheap — use for bounded/mechanical tasks
+  - Explore/search teammates (file discovery, grep, pattern finding)
+  - Test/build/lint runners (execute command, report output)
+  - Simple file reads and summaries
+  - Any task that's "run X, report result"
+
+sonnet:  # balanced — use for tasks requiring judgment
+  - Implementation following established patterns
+  - Code review teammates
+  - Refactoring within clear scope
+  - Writing tests following existing test patterns
+  - Bug fixes with clear reproduction steps
+
+opus:  # reserve for tasks requiring deep reasoning
+  - Complex/novel implementation (no existing pattern to follow)
+  - Architectural decisions affecting multiple files
+  - Multi-file coordinated changes with tricky dependencies
+  - Debugging subtle issues requiring deep code understanding
+  - Team lead role (when team lead is itself a teammate)
+```
+
+### Decision Flowchart
+
+```
+Is the task "run command, report output"? → haiku
+Is there a clear pattern/reference to follow? → sonnet
+Is the task read-only exploration? → haiku
+Does it require novel code design or complex reasoning? → opus
+Unsure? → sonnet (safe default)
+```
+
+### Spawning Examples
+
+```yaml
+explore_phase:
+  - Spawn with model: haiku — just finding files and patterns
+
+implement_phase_simple:
+  - "Add handler following pattern in auth-handler.ts"
+  - Spawn with model: sonnet
+
+implement_phase_complex:
+  - "Design new caching layer, no existing pattern"
+  - Spawn with model: opus
+
+verification_phase:
+  - "Run typecheck and lint, report errors"
+  - Spawn with model: haiku
+```
+
+### Override: Promote on Failure
+
+If a haiku/sonnet teammate fails or produces low-quality output:
+- Shut down the teammate
+- Re-spawn with one tier higher model
+- Include the failure context in the new prompt so it doesn't repeat mistakes
+
 ## Context Bridging Between Phases
 
 **Primary Rule**: Team lead distills explore findings into implementation prompts to eliminate redundant broad exploration. Implementation agents will still read specific files — that's expected.
@@ -507,3 +585,13 @@ minor_adjustment:
 - Assess blast radius: does this affect just this task, this phase, or the whole plan?
 - If plan revision needed: communicate to user before proceeding
 - Update task descriptions for downstream work so future teammates get correct context
+
+---
+
+# Commit Message Style (nrwl/* repos only)
+
+- user provides tag/scope (e.g. `fix(nx-cloud)`, `feat(dte-v2)`) — don't invent your own
+- commit title: very concise, lowercase
+- commit body: bulleted list, lowercase, sacrifice grammar for conciseness
+- don't mention test additions/changes in commit body
+- no emojis

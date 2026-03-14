@@ -3,3 +3,8 @@
 # This won't be added again if you remove it.
 Include ~/.orbstack/ssh/config
 
+Host bitbucket.org
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+

@@ -40,30 +40,17 @@ age-keygen -o ~/.config/chezmoi/key.txt
 - [ ] Printed copy in safe location
 - [ ] Password manager (if not company-owned)
 
-### 1.4 Configure chezmoi for age encryption
+### 1.4 Configure chezmoi
 
 Create `~/.config/chezmoi/chezmoi.toml`:
 ```toml
 encryption = "age"
 [age]
     identity = "~/.config/chezmoi/key.txt"
-    recipient = "age1k52u0laqzrxz8m7cc043r0cf0fe8hr54q3w9nuswanl6s0qddecqxmv0pk"
+    recipient = "age1xxxxxxxxx..."  # public key from key.txt
 ```
 
-### 1.5 Add chezmoi config template to source directory
-
-Create `~/.local/share/chezmoi/.chezmoi.toml.tmpl` with the same content as `chezmoi.toml` above. This ensures `chezmoi init` auto-generates the config on a new machine — no manual config creation needed.
-
-```toml
-encryption = "age"
-[age]
-    identity = "~/.config/chezmoi/key.txt"
-    recipient = "age1k52u0laqzrxz8m7cc043r0cf0fe8hr54q3w9nuswanl6s0qddecqxmv0pk"
-```
-
-> **Why**: Without this template, `chezmoi init --apply` on a fresh machine won't know to use age, and all encrypted files will fail to decrypt. With the template, restoring `key.txt` (Step 3 post-wipe) is the only manual step — the config is auto-generated.
-
-### 1.6 Create `.chezmoiignore`
+### 1.5 Create `.chezmoiignore`
 
 Create `~/.local/share/chezmoi/.chezmoiignore` to exclude IDE/editor junk and macOS artifacts:
 ```
@@ -72,7 +59,7 @@ Create `~/.local/share/chezmoi/.chezmoiignore` to exclude IDE/editor junk and ma
 .DS_Store
 ```
 
-### 1.7 Create GitHub repo
+### 1.6 Create GitHub repo
 ```bash
 cd ~/.local/share/chezmoi
 git init
@@ -577,8 +564,7 @@ chezmoi init --apply nartc
 
 This will:
 - Clone your dotfiles repo
-- **Auto-generate `~/.config/chezmoi/chezmoi.toml`** from `.chezmoi.toml.tmpl` (age encryption config — no manual setup needed)
-- Decrypt all encrypted secrets using the restored `key.txt`
+- Decrypt all encrypted secrets
 - Run Brewfile to install all packages
 - Apply macOS defaults
 - Symlink all config files
@@ -704,12 +690,6 @@ pyenv global 3.12.12
 # Elixir: 1.18.3-otp-27
 # OTP: 27.2.3
 ```
-
-**Rust (via rustup)**
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-> After install, uncomment `. "$HOME/.local/bin/env"` in `~/.zshrc` (line 141) and `. "$HOME/.cargo/env"` in `~/.zshenv`.
 
 **Bun**
 ```bash

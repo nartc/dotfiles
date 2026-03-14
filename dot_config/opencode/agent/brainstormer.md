@@ -1,7 +1,7 @@
 ---
 description: Creative ideation agent for brainstorming application ideas, features, and solutions. Generates realistic, actionable ideas and produces structured outputs ready for planning agents. Use when exploring possibilities before committing to a direction.
 mode: primary
-model: anthropic/claude-sonnet-4-5
+model: anthropic/claude-opus-4-6
 temperature: 0.5
 tools:
   edit: true
