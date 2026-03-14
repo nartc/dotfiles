@@ -1,0 +1,39 @@
+# _wt_resolve_base - Resolve the worktree base directory for the current git repo
+# Echoes the absolute path to the worktree base directory
+# Returns 1 if not in a git repo
+
+local git_dir git_common_dir git_root
+
+git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
+  echo "Error: Not in a git repository" >&2
+  return 1
+}
+
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+# Resolve to absolute paths for comparison
+local abs_git_dir abs_common_dir
+abs_git_dir=$(cd "$git_dir" 2>/dev/null && pwd)
+abs_common_dir=$(cd "$git_common_dir" 2>/dev/null && pwd)
+
+if [[ "$abs_git_dir" != "$abs_common_dir" ]]; then
+  # Linked worktree — resolve to main worktree root
+  git_root=$(dirname "$abs_common_dir")
+else
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: Cannot determine git root" >&2
+    return 1
+  }
+fi
+
+local repo_name parent_dir org_name grandparent_dir
+repo_name=$(basename "$git_root")
+parent_dir=$(dirname "$git_root")
+org_name=$(basename "$parent_dir")
+grandparent_dir=$(dirname "$parent_dir")
+
+if [[ -d "${grandparent_dir}/${org_name}-worktrees" ]]; then
+  echo "${grandparent_dir}/${org_name}-worktrees"
+else
+  echo "${parent_dir}/${repo_name}-worktrees"
+fi

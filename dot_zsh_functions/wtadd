@@ -1,0 +1,150 @@
+# wtadd - Create a new git worktree for the current repo
+# Usage: wtadd <directory-name> [starting-point] [--branch <branch-name>] [--tmux <attach|detach|none>]
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: wtadd <directory-name> [starting-point] [--branch <branch-name>] [--tmux <mode>]"
+  echo "Examples:"
+  echo "  wtadd my-feature                    # branch: my-feature, starting from: main"
+  echo "  wtadd my-feature develop             # branch: my-feature, starting from: develop"
+  echo "  wtadd my-dir --branch feat/new-one  # branch: feat/new-one, directory: my-dir"
+  echo "  wtadd my-feature --tmux detach       # create worktree + detached tmux session"
+  echo "  wtadd my-feature --tmux none         # create worktree, no tmux"
+  return 1
+fi
+
+local directory_name=""
+local branch_name=""
+local starting_point="main"
+local tmux_mode="attach"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --branch)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --branch requires a value"
+        return 1
+      fi
+      branch_name="$1"
+      shift
+      ;;
+    --tmux)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --tmux requires a value (attach|detach|none)"
+        return 1
+      fi
+      tmux_mode="$1"
+      shift
+      ;;
+    *)
+      if [[ -z "$directory_name" ]]; then
+        directory_name="$1"
+      elif [[ "$starting_point" == "main" ]]; then
+        starting_point="$1"
+      else
+        echo "Error: Too many arguments"
+        return 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# If no branch name specified, use directory name
+if [[ -z "$branch_name" ]]; then
+  branch_name="$directory_name"
+fi
+
+# Resolve main git root (linked worktree aware)
+local git_dir git_common_dir git_root
+git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
+  echo "Error: Not in a git repository"
+  return 1
+}
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+local abs_git_dir abs_common_dir
+abs_git_dir=$(cd "$git_dir" 2>/dev/null && pwd)
+abs_common_dir=$(cd "$git_common_dir" 2>/dev/null && pwd)
+
+if [[ "$abs_git_dir" != "$abs_common_dir" ]]; then
+  git_root=$(dirname "$abs_common_dir")
+else
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: Cannot determine git root"
+    return 1
+  }
+fi
+
+# Resolve worktree base
+local worktree_base
+worktree_base=$(_wt_resolve_base) || return 1
+
+local worktree_path="${worktree_base}/${directory_name}"
+
+# Read config for file copy list
+local config_file="$HOME/.config/chauwt/repos.json"
+local repo_name org_name repo_key
+repo_name=$(basename "$git_root")
+org_name=$(basename "$(dirname "$git_root")")
+repo_key="${org_name}/${repo_name}"
+
+if [[ ! -f "$config_file" ]]; then
+  echo "Error: Config file not found at ${config_file}"
+  echo "Run \`chauwt-setup\` to configure file copying for this repo."
+  return 1
+fi
+
+local repo_config
+repo_config=$(jq -e --arg key "$repo_key" '.[$key]' "$config_file" 2>/dev/null)
+
+if [[ $? -ne 0 ]]; then
+  echo "Error: No configuration found for ${repo_key} in ${config_file}"
+  echo "Run \`chauwt-setup\` to configure."
+  return 1
+fi
+
+# Ensure worktree base exists
+mkdir -p "$worktree_base"
+
+# Create worktree
+if git -C "$git_root" show-ref --verify --quiet "refs/heads/${branch_name}"; then
+  echo "Branch ${branch_name} already exists. Creating worktree from existing branch."
+  echo "Creating worktree: git worktree add ${worktree_path} ${branch_name}"
+  git -C "$git_root" worktree add "${worktree_path}" "${branch_name}"
+else
+  echo "Branch ${branch_name} does not exist. Creating new branch from ${starting_point}."
+  echo "Creating worktree: git worktree add -b ${branch_name} ${worktree_path} ${starting_point}"
+  git -C "$git_root" worktree add -b "${branch_name}" "${worktree_path}" "${starting_point}"
+fi
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to create worktree"
+  return 1
+fi
+
+# Copy files from config
+local files_json file_count
+files_json=$(echo "$repo_config" | jq -r '.files')
+file_count=$(echo "$files_json" | jq -r 'length')
+
+if [[ "$file_count" -gt 0 ]]; then
+  echo "Copying configured files..."
+  local i file_entry
+  for i in $(seq 0 $((file_count - 1))); do
+    file_entry=$(echo "$files_json" | jq -r ".[$i]")
+    if [[ -e "${git_root}/${file_entry}" ]]; then
+      mkdir -p "$(dirname "${worktree_path}/${file_entry}")"
+      cp -r "${git_root}/${file_entry}" "${worktree_path}/${file_entry}"
+      echo "  ✓ Copied ${file_entry}"
+    else
+      echo "  - Skipped ${file_entry} (not found)"
+    fi
+  done
+fi
+
+echo "Worktree created successfully at ${worktree_path}"
+
+_wt_tmux_session "$directory_name" "$worktree_path" "$tmux_mode"

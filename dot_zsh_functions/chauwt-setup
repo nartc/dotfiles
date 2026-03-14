@@ -1,0 +1,86 @@
+# chauwt-setup - Interactive setup for worktree file copying configuration
+# Usage: chauwt-setup
+
+# Resolve main git root (linked worktree aware)
+local git_dir git_common_dir git_root
+git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
+  echo "Error: Not in a git repository"
+  return 1
+}
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+local abs_git_dir abs_common_dir
+abs_git_dir=$(cd "$git_dir" 2>/dev/null && pwd)
+abs_common_dir=$(cd "$git_common_dir" 2>/dev/null && pwd)
+
+if [[ "$abs_git_dir" != "$abs_common_dir" ]]; then
+  git_root=$(dirname "$abs_common_dir")
+else
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: Cannot determine git root"
+    return 1
+  }
+fi
+
+local repo_name org_name repo_key config_file
+repo_name=$(basename "$git_root")
+org_name=$(basename "$(dirname "$git_root")")
+repo_key="${org_name}/${repo_name}"
+config_file="$HOME/.config/chauwt/repos.json"
+
+# Ensure config directory exists
+mkdir -p "$HOME/.config/chauwt"
+
+# Initialize repos.json if missing
+if [[ ! -f "$config_file" ]]; then
+  echo '{}' > "$config_file"
+fi
+
+# Check if already configured
+if jq -e --arg key "$repo_key" '.[$key]' "$config_file" &>/dev/null; then
+  echo "Repository ${repo_key} is already configured."
+  echo -n "Reconfigure? [y/N] "
+  read -r response
+  if [[ ! "$response" =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    return 0
+  fi
+fi
+
+echo "Setting up file copy configuration for ${repo_key}..."
+echo ""
+
+# Invoke interactive Claude session
+claude \
+  --model haiku \
+  --allowedTools "Read,Write,Bash(ls:*),Bash(git:*)" \
+  -- \
+  "You are helping configure which gitignored files should be copied when creating new git worktrees.
+
+Repository: ${repo_key}
+Git root: ${git_root}
+Config file: ${config_file}
+
+Steps:
+1. Read ${git_root}/.gitignore to understand what's ignored
+2. Run \`ls -la ${git_root}\` and check which gitignored files/directories actually exist
+3. Present the list to the user and ask which ones should be copied to new worktrees
+4. If the user says \"none\", write {\"files\": []} for this repo key
+5. Write the user's selection to ${config_file} using jq-compatible JSON
+
+The config file is a JSON object where keys are \"org/repo\" and values have a \"files\" array.
+Read the existing config first and merge — do not overwrite other repos.
+
+IMPORTANT: Only write to ${config_file}. Do not modify any other files."
+
+# Verify configuration was written
+if jq -e --arg key "$repo_key" '.[$key]' "$config_file" &>/dev/null; then
+  echo ""
+  echo "Configuration saved for ${repo_key}:"
+  jq --arg key "$repo_key" '.[$key]' "$config_file"
+else
+  echo ""
+  echo "Warning: Configuration for ${repo_key} was not found in ${config_file}"
+  echo "You may need to run chauwt-setup again."
+  return 1
+fi

@@ -1,0 +1,47 @@
+function minio() {
+  local cmd="${1:-start}"
+  local name="minio"
+  local data_dir="${MINIO_DATA_DIR:-$(pwd)/.data_dir/cloud-storage}"
+
+  case "$cmd" in
+    start)
+      if docker ps -q -f name="$name" | grep -q .; then
+        echo "minio is already running"
+        docker ps -f name="$name" --format "{{.Status}}"
+        return 0
+      fi
+
+      # remove stopped container if exists
+      docker rm -f "$name" 2>/dev/null
+
+      docker run -d \
+        --name "$name" \
+        -e MINIO_ROOT_USER=minioadmin \
+        -e MINIO_ROOT_PASSWORD=minioadmin \
+        -p 9090:9000 \
+        -p 9091:9001 \
+        -v "$data_dir:/data" \
+        --health-cmd="mc ready local" \
+        --health-interval=5s \
+        --health-timeout=5s \
+        --health-retries=5 \
+        minio/minio server /data --console-address ":9001" \
+        && echo "minio started — api: localhost:9090, console: localhost:9091"
+      ;;
+    stop)
+      docker stop "$name" 2>/dev/null && echo "minio stopped" || echo "minio is not running"
+      ;;
+    rm)
+      docker rm -f "$name" 2>/dev/null && echo "minio removed" || echo "minio container not found"
+      ;;
+    logs)
+      docker logs -f "$name"
+      ;;
+    status)
+      docker ps -f name="$name" --format "{{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "minio is not running"
+      ;;
+    *)
+      echo "usage: minio {start|stop|rm|logs|status}"
+      ;;
+  esac
+}

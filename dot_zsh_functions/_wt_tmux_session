@@ -1,0 +1,36 @@
+# _wt_tmux_session - Create/attach a tmux session for a worktree
+# Usage: _wt_tmux_session <session-name> <worktree-path> <mode>
+# mode: attach | detach | none
+
+local session_name="$1"
+local worktree_path="$2"
+local mode="$3"
+
+[[ "$mode" == "none" ]] && return 0
+
+# Skip silently if tmux not installed
+if ! command -v tmux &>/dev/null; then
+  return 0
+fi
+
+# Sanitize session name (tmux disallows . and :)
+session_name="${session_name//./-}"
+session_name="${session_name//:/-}"
+
+if [[ "$mode" == "detach" ]]; then
+  tmux new-session -d -s "$session_name" -c "$worktree_path"
+  echo "Tmux session created: ${session_name}"
+  return 0
+fi
+
+if [[ "$mode" == "attach" ]]; then
+  if [[ -n "$TMUX" ]]; then
+    tmux new-session -d -s "$session_name" -c "$worktree_path"
+    echo "Switching to tmux session: ${session_name}"
+    tmux switch-client -t "$session_name"
+  else
+    echo "Attaching to tmux session: ${session_name}"
+    tmux new-session -s "$session_name" -c "$worktree_path"
+  fi
+  return 0
+fi

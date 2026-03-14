@@ -1,0 +1,98 @@
+# Claude Code Remote Keepalive
+# Finds tmux panes with Claude remote control active and sends periodic pings
+# Skips active panes and new permission prompts; auto-denies stale prompts
+# Usage: ccrka [interval_seconds] (default: 300)
+
+local interval="${1:-300}"
+local idle_threshold=60  # seconds without activity before pane considered idle
+local -A prompt_fingerprints  # pane -> md5 of prompt content from last cycle
+
+local panes=()
+local content now last_activity idle tail_content fingerprint
+local summary=()
+local max_pane_len p_len fmt p_pane p_status p_idle p_action
+
+echo "Interval: ${interval}s, idle threshold: ${idle_threshold}s, Ctrl+C to stop"
+
+while true; do
+  # re-scan for remote control panes each cycle to pick up new sessions
+  panes=()
+  while IFS= read -r pane_id; do {
+    content=$(tmux capture-pane -p -t "$pane_id" 2>/dev/null)
+    if echo "$content" | tail -3 | grep -qE "ctx [0-9]+%.*Remote Control active"; then
+      panes+=("$pane_id")
+    fi
+  } done < <(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}') > /dev/null
+
+  if [[ ${#panes[@]} -eq 0 ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] No remote control panes found, waiting..."
+    sleep "$interval"
+    continue
+  fi
+
+  now=$(date +%s)
+  summary=()
+
+  for pane in "${panes[@]}"; do {
+    last_activity=$(tmux display-message -t "$pane" -p '#{window_activity}' 2>/dev/null) || {
+      summary+=("$pane|unreachable|-|skipped")
+      continue
+    }
+    idle=$(( now - last_activity ))
+
+    # check last 10 lines for permission/interaction prompts
+    tail_content=$(tmux capture-pane -p -t "$pane" -S -10 2>/dev/null)
+
+    if echo "$tail_content" | grep -qiE "Allow once|Always allow|Allow all|Deny|Do you want to proceed|approve"; then
+      # fingerprint the prompt to detect same vs new prompt across cycles
+      fingerprint=$(echo "$tail_content" | md5 2>/dev/null || echo "$tail_content" | md5sum 2>/dev/null | cut -d' ' -f1)
+
+      if [[ "${prompt_fingerprints[$pane]}" == "$fingerprint" ]]; then
+        # same prompt seen last cycle — stale, auto-deny
+        tmux send-keys -t "$pane" Escape
+        sleep 0.3
+        unset "prompt_fingerprints[$pane]"
+        summary+=("$pane|stale-perm|${idle}s|denied")
+      else
+        # new prompt — store fingerprint, give user a chance to respond
+        prompt_fingerprints[$pane]="$fingerprint"
+        summary+=("$pane|permission|${idle}s|skipped (new)")
+      fi
+      continue
+    fi
+
+    # no prompt visible — clear any stored fingerprint
+    unset "prompt_fingerprints[$pane]"
+
+    # recent activity means session is actively working — skip
+    if [[ $idle -lt $idle_threshold ]]; then
+      summary+=("$pane|active|${idle}s|skipped")
+      continue
+    fi
+
+    # pane is idle with no prompt — send keepalive
+    tmux send-keys -t "$pane" "keepalive ping"
+    sleep 0.3
+    tmux send-keys -t "$pane" Enter
+    summary+=("$pane|idle|${idle}s|pinged")
+  } done > /dev/null
+
+  # print summary table
+  max_pane_len=4  # min length = "Pane"
+  for row in "${summary[@]}"; do
+    p_len=${#row%%|*}
+    (( p_len > max_pane_len )) && max_pane_len=$p_len
+  done
+  fmt="  %-${max_pane_len}s  %-12s %-10s %s\n"
+
+  echo ""
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Ping cycle summary:"
+  printf "$fmt" "Pane" "Status" "Idle" "Action"
+  printf "$fmt" "$(printf '%0.s-' {1..$max_pane_len})" "------" "----" "------"
+  for row in "${summary[@]}"; do
+    IFS='|' read -r p_pane p_status p_idle p_action <<< "$row"
+    printf "$fmt" "$p_pane" "$p_status" "$p_idle" "$p_action"
+  done
+
+  sleep "$interval"
+done

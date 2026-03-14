@@ -1,0 +1,166 @@
+# wtlinear - Create a worktree from a Linear ticket (nrwl org only)
+# Usage: wtlinear <ticket-id> [--tmux <attach|detach|none>]
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: wtlinear <ticket-id> [--tmux <mode>]"
+  echo "Examples:"
+  echo "  wtlinear ENG-1234                  # create worktree + attach tmux"
+  echo "  wtlinear ENG-1234 --tmux detach    # create worktree + detached tmux session"
+  echo "  wtlinear ENG-1234 --tmux none      # create worktree, no tmux"
+  return 1
+fi
+
+local ticket_id=""
+local tmux_mode="attach"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --tmux)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --tmux requires a value (attach|detach|none)"
+        return 1
+      fi
+      tmux_mode="$1"
+      shift
+      ;;
+    *)
+      if [[ -z "$ticket_id" ]]; then
+        ticket_id="$1"
+      else
+        echo "Error: Too many arguments"
+        return 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$ticket_id" ]]; then
+  echo "Error: ticket-id is required"
+  return 1
+fi
+
+# Resolve main git root (linked worktree aware)
+local git_dir git_common_dir git_root
+git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
+  echo "Error: Not in a git repository"
+  return 1
+}
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+local abs_git_dir abs_common_dir
+abs_git_dir=$(cd "$git_dir" 2>/dev/null && pwd)
+abs_common_dir=$(cd "$git_common_dir" 2>/dev/null && pwd)
+
+if [[ "$abs_git_dir" != "$abs_common_dir" ]]; then
+  git_root=$(dirname "$abs_common_dir")
+else
+  git_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: Cannot determine git root"
+    return 1
+  }
+fi
+
+local org_name
+org_name=$(basename "$(dirname "$git_root")")
+
+if [[ "$org_name" != "nrwl" ]]; then
+  echo "Error: wtlinear is only available for nrwl repos (current org: ${org_name})"
+  return 1
+fi
+
+# Dependency checks
+if ! command -v claude &>/dev/null; then
+  echo "Error: claude CLI not found. Install it first."
+  return 1
+fi
+
+if ! command -v jq &>/dev/null; then
+  echo "Error: jq not found. Install it with: brew install jq"
+  return 1
+fi
+
+echo "Fetching Linear ticket ${ticket_id}..."
+
+local claude_prompt="Use the mcp__claude_ai_Linear__get_issue tool to fetch Linear ticket ${ticket_id}, then use mcp__claude_ai_Linear__list_comments tool to get its comments. Do NOT use WebFetch. Return ONLY a JSON object (no markdown fences, no explanation) with these fields:
+{
+  \"title\": \"the ticket title\",
+  \"description_summary\": \"1-2 sentence summary of the description\",
+  \"comments_summary\": \"1-2 sentence summary of key comments, or 'No comments' if none\",
+  \"suggested_slug\": \"concise-kebab-case-slug-from-title (max 5 words)\"
+}"
+
+local claude_response claude_stderr
+claude_stderr=$(mktemp)
+claude_response=$(echo "$claude_prompt" | claude -p \
+  --model haiku \
+  --allowedTools "mcp__claude_ai_Linear__get_issue,mcp__claude_ai_Linear__list_comments" \
+  2>"$claude_stderr")
+
+if [[ -z "$claude_response" ]]; then
+  echo "Error: Failed to get response from Claude"
+  if [[ -s "$claude_stderr" ]]; then
+    echo "Claude stderr:"
+    cat "$claude_stderr"
+  fi
+  rm -f "$claude_stderr"
+  return 1
+fi
+rm -f "$claude_stderr"
+
+# Extract JSON from response (handle markdown fences, surrounding text, etc.)
+local raw_response="$claude_response"
+# Remove markdown code fences if present
+claude_response=$(echo "$claude_response" | sed 's/^```json//; s/^```//')
+# Extract the JSON object (possibly spanning multiple lines)
+claude_response=$(echo "$claude_response" | awk '/\{/{found=1} found{print} /\}/{if(found) exit}')
+
+# Parse JSON
+local title description_summary comments_summary slug
+title=$(echo "$claude_response" | jq -r '.title // empty' 2>/dev/null)
+description_summary=$(echo "$claude_response" | jq -r '.description_summary // empty' 2>/dev/null)
+comments_summary=$(echo "$claude_response" | jq -r '.comments_summary // empty' 2>/dev/null)
+slug=$(echo "$claude_response" | jq -r '.suggested_slug // empty' 2>/dev/null)
+
+if [[ -z "$title" || -z "$slug" ]]; then
+  echo "Error: Failed to parse ticket information"
+  echo "Raw response from Claude:"
+  echo "$raw_response"
+  return 1
+fi
+
+local dir_name="${ticket_id}-${slug}"
+local branch_name="ct/${ticket_id}-${slug}"
+
+echo ""
+echo "Ticket: ${title}"
+echo "Directory: ${dir_name}"
+echo "Branch: ${branch_name}"
+echo ""
+
+# Create worktree
+wtadd "$dir_name" main --branch "$branch_name" --tmux none || return 1
+
+# Resolve worktree path
+local worktree_base
+worktree_base=$(_wt_resolve_base) || return 1
+local worktree_path="${worktree_base}/${dir_name}"
+
+# Create context file
+mkdir -p "${worktree_path}/tmp"
+cat > "${worktree_path}/tmp/${ticket_id}-initial-context.md" <<EOF
+# ${ticket_id}: ${title}
+
+## Description
+${description_summary}
+
+## Comments
+${comments_summary}
+EOF
+
+echo ""
+echo "Context file created at tmp/${ticket_id}-initial-context.md"
+
+_wt_tmux_session "$dir_name" "$worktree_path" "$tmux_mode"

@@ -1,0 +1,69 @@
+# wtpr - Create a worktree from a PR branch or PR number
+# Usage: wtpr <branch-name|pr-number> [--tmux <attach|detach|none>]
+
+local input=""
+local tmux_mode="attach"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --tmux)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --tmux requires a value (attach|detach|none)"
+        return 1
+      fi
+      tmux_mode="$1"
+      shift
+      ;;
+    *)
+      if [[ -z "$input" ]]; then
+        input="$1"
+      else
+        echo "Error: Too many arguments"
+        return 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$input" ]]; then
+  echo "Usage: wtpr <branch-name|pr-number> [--tmux <mode>]"
+  echo "Examples:"
+  echo "  wtpr feat/new-feature"
+  echo "  wtpr 1234"
+  echo "  wtpr 1234 --tmux detach"
+  return 1
+fi
+
+local branch_name=""
+
+# Check if input is a PR number (digits only)
+if [[ "$input" =~ ^[0-9]+$ ]]; then
+  echo "Fetching branch name for PR #${input}..."
+  branch_name=$(gh pr view "$input" --json headRefName -q .headRefName 2>/dev/null)
+  if [[ -z "$branch_name" ]]; then
+    echo "Error: Could not find PR #${input} or failed to fetch branch name"
+    return 1
+  fi
+  echo "Found branch: ${branch_name}"
+else
+  branch_name="$input"
+fi
+
+# Fetch the remote to ensure we have the latest
+echo "Fetching from origin..."
+git fetch origin
+
+# Check if the remote branch exists
+if ! git show-ref --verify --quiet "refs/remotes/origin/${branch_name}"; then
+  echo "Error: Remote branch origin/${branch_name} does not exist"
+  return 1
+fi
+
+# Create directory name from branch (replace / with -)
+local directory_name="${branch_name//\//-}"
+
+# Pass through to wtadd
+wtadd "${directory_name}" "origin/${branch_name}" --branch "${branch_name}" --tmux "$tmux_mode"

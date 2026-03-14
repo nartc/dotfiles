@@ -1,0 +1,332 @@
+# wtprune - Remove worktrees with gone upstream branches
+# Usage: wtprune [path] [--depth N]
+#   path    - scan for git repos recursively (default: cwd, uses current repo)
+#   --depth - max directory depth to search for repos (default: 3)
+
+local search_path="" max_depth=3
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --depth)
+      max_depth="$2"
+      shift 2
+      ;;
+    --depth=*)
+      max_depth="${1#--depth=}"
+      shift
+      ;;
+    *)
+      search_path="$1"
+      shift
+      ;;
+  esac
+done
+
+# Helper: process a single git repo
+_wtprune_repo() {
+  local git_root="$1"
+  local abs_git_root
+  abs_git_root=$(realpath "$git_root" 2>/dev/null)
+  local repo_name
+  repo_name=$(basename "$abs_git_root")
+
+  local gone_branches branch worktree_info dir_name wt_path wt_branch track_status
+
+  echo "[$repo_name] Fetching remote and pruning stale tracking branches..."
+  git -C "$git_root" fetch --prune 2>/dev/null
+  echo ""
+
+  # Collect all non-main worktrees with their status
+  local -a gone_wt_paths=() gone_wt_branches=() gone_wt_dirs=()
+  local -a notrack_wt_paths=() notrack_wt_branches=() notrack_wt_dirs=()
+  local -a branchless_gone=()
+
+  # Get list of branches with gone upstream
+  gone_branches=$(git -C "$git_root" branch -vv 2>/dev/null | grep ': gone]' | sed 's/^[*+ ]*//' | awk '{print $1}')
+
+  # Check gone branches for worktrees
+  if [[ -n "$gone_branches" ]]; then
+    while IFS= read -r branch; do
+      [[ -z "$branch" ]] && continue
+      worktree_info=$(git -C "$git_root" worktree list --porcelain | awk -v branch="refs/heads/$branch" '
+        /^worktree / { wt = substr($0, 10) }
+        /^branch / && $2 == branch { print wt }
+      ')
+      if [[ -n "$worktree_info" ]]; then
+        [[ "$(realpath "$worktree_info" 2>/dev/null)" == "$abs_git_root" ]] && continue
+        gone_wt_paths+=("$worktree_info")
+        gone_wt_branches+=("$branch")
+        gone_wt_dirs+=("$(basename "$worktree_info")")
+      else
+        branchless_gone+=("$branch")
+      fi
+    done <<< "$gone_branches"
+  fi
+
+  # Scan all worktrees for ones with no upstream tracking
+  local wt_list
+  wt_list=$(git -C "$git_root" worktree list --porcelain)
+  while IFS= read -r wt_path; do
+    [[ -z "$wt_path" ]] && continue
+    [[ "$(realpath "$wt_path" 2>/dev/null)" == "$abs_git_root" ]] && continue
+
+    wt_branch=$(git -C "$wt_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    [[ -z "$wt_branch" || "$wt_branch" == "HEAD" ]] && continue
+
+    # Skip if already in gone list
+    local already_listed=0
+    for gb in "${gone_wt_branches[@]}"; do
+      [[ "$gb" == "$wt_branch" ]] && { already_listed=1; break; }
+    done
+    [[ $already_listed -eq 1 ]] && continue
+
+    # Check upstream tracking
+    track_status=$(git -C "$git_root" for-each-ref --format='%(upstream)' "refs/heads/$wt_branch" 2>/dev/null)
+    if [[ -z "$track_status" ]]; then
+      notrack_wt_paths+=("$wt_path")
+      notrack_wt_branches+=("$wt_branch")
+      notrack_wt_dirs+=("$(basename "$wt_path")")
+    fi
+  done < <(echo "$wt_list" | awk '/^worktree / { print substr($0, 10) }')
+
+  # Nothing found at all
+  if [[ ${#gone_wt_paths[@]} -eq 0 && ${#notrack_wt_paths[@]} -eq 0 && ${#branchless_gone[@]} -eq 0 ]]; then
+    echo "[$repo_name] No stale worktrees or branches found."
+    echo ""
+    return 0
+  fi
+
+  # Helper to display and confirm removal of a group
+  _wtprune_remove_group() {
+    local label="$1" repo="$2" root="$3"
+    shift 3
+    local -a paths=() branches=() dirs=()
+    while [[ $# -gt 0 ]]; do
+      paths+=("$1"); branches+=("$2"); dirs+=("$3")
+      shift 3
+    done
+
+    [[ ${#paths[@]} -eq 0 ]] && return 0
+
+    echo "[$repo] $label:"
+    echo "=========================================="
+    for i in {1..${#paths[@]}}; do
+      echo ""
+      echo "  Directory: ${dirs[$i]}"
+      echo "  Branch:    ${branches[$i]}"
+      echo "  Path:      ${paths[$i]}"
+    done
+    echo ""
+    echo "=========================================="
+    echo "Total: ${#paths[@]} worktree(s)"
+    echo ""
+
+    echo -n "[$repo] Remove these? [y/N] "
+    read -r response
+
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+      echo "[$repo] Skipped."
+      echo ""
+      return 0
+    fi
+
+    echo ""
+
+    local failed=0
+    for i in {1..${#paths[@]}}; do
+      echo "Removing worktree: ${dirs[$i]}..."
+
+      if ! git -C "$root" worktree remove "${paths[$i]}" 2>/dev/null; then
+        echo "  Warning: git worktree remove failed, force removing..."
+        git -C "$root" worktree remove --force "${paths[$i]}" 2>/dev/null
+      fi
+
+      if [[ -d "${paths[$i]}" ]]; then
+        echo "  Directory still exists, force removing..."
+        rm -rf "${paths[$i]}"
+      fi
+
+      if git -C "$root" branch -D "${branches[$i]}" 2>/dev/null; then
+        echo "  ✓ Removed branch: ${branches[$i]}"
+      else
+        echo "  ✗ Failed to remove branch: ${branches[$i]}"
+        ((failed++))
+      fi
+
+      git -C "$root" worktree prune 2>/dev/null
+      echo "  ✓ Removed worktree: ${dirs[$i]}"
+      echo ""
+    done
+    return $failed
+  }
+
+  local total_failed=0
+
+  # Group 1: gone upstream
+  if [[ ${#gone_wt_paths[@]} -gt 0 ]]; then
+    local -a gone_args=()
+    for i in {1..${#gone_wt_paths[@]}}; do
+      gone_args+=("${gone_wt_paths[$i]}" "${gone_wt_branches[$i]}" "${gone_wt_dirs[$i]}")
+    done
+    _wtprune_remove_group "Worktrees with GONE upstream" "$repo_name" "$git_root" "${gone_args[@]}"
+    ((total_failed += $?))
+  fi
+
+  # Group 2: no upstream tracking — confirm each individually
+  if [[ ${#notrack_wt_paths[@]} -gt 0 ]]; then
+    echo "[$repo_name] Worktrees with NO upstream tracking (possibly stale):"
+    echo ""
+    for i in {1..${#notrack_wt_paths[@]}}; do
+      echo "  Directory: ${notrack_wt_dirs[$i]}"
+      echo "  Branch:    ${notrack_wt_branches[$i]}"
+      echo "  Path:      ${notrack_wt_paths[$i]}"
+      echo -n "  Remove? [y/N] "
+      read -r response
+      if [[ "$response" =~ ^[Yy]$ ]]; then
+        echo "  Removing worktree: ${notrack_wt_dirs[$i]}..."
+        if ! git -C "$git_root" worktree remove "${notrack_wt_paths[$i]}" 2>/dev/null; then
+          echo "    Warning: git worktree remove failed, force removing..."
+          git -C "$git_root" worktree remove --force "${notrack_wt_paths[$i]}" 2>/dev/null
+        fi
+        if [[ -d "${notrack_wt_paths[$i]}" ]]; then
+          echo "    Directory still exists, force removing..."
+          rm -rf "${notrack_wt_paths[$i]}"
+        fi
+        if git -C "$git_root" branch -D "${notrack_wt_branches[$i]}" 2>/dev/null; then
+          echo "  ✓ Removed branch: ${notrack_wt_branches[$i]}"
+        else
+          echo "  ✗ Failed to remove branch: ${notrack_wt_branches[$i]}"
+          ((total_failed++))
+        fi
+        git -C "$git_root" worktree prune 2>/dev/null
+        echo "  ✓ Removed worktree: ${notrack_wt_dirs[$i]}"
+      else
+        echo "  Skipped."
+      fi
+      echo ""
+    done
+  fi
+
+  # Show gone branches without worktrees
+  if [[ ${#branchless_gone[@]} -gt 0 ]]; then
+    echo "[$repo_name] Branches with gone upstream (no worktree):"
+    printf '  - %s\n' "${branchless_gone[@]}"
+    echo ""
+  fi
+
+  if [[ $total_failed -eq 0 ]]; then
+    echo "[$repo_name] Done."
+  else
+    echo "[$repo_name] Completed with ${total_failed} error(s)."
+  fi
+  echo ""
+
+  unfunction _wtprune_remove_group 2>/dev/null
+  return $total_failed
+}
+
+# No path given — fall back to current repo (original behavior)
+if [[ -z "$search_path" ]]; then
+  local git_root git_dir git_common_dir abs_git_dir abs_common_dir
+
+  git_dir=$(git rev-parse --git-dir 2>/dev/null) || {
+    echo "Error: Not in a git repository. Pass a path to scan for repos."
+    return 1
+  }
+  git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+  abs_git_dir=$(cd "$git_dir" 2>/dev/null && pwd)
+  abs_common_dir=$(cd "$git_common_dir" 2>/dev/null && pwd)
+
+  if [[ "$abs_git_dir" != "$abs_common_dir" ]]; then
+    git_root=$(dirname "$abs_common_dir")
+  else
+    git_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+      echo "Error: Cannot determine git root"
+      return 1
+    }
+  fi
+
+  _wtprune_repo "$git_root"
+  local ret=$?
+  unfunction _wtprune_repo 2>/dev/null
+  return $ret
+fi
+
+# Path given — find all git repos recursively
+search_path=$(realpath "$search_path" 2>/dev/null) || {
+  echo "Error: Invalid path: $search_path"
+  unfunction _wtprune_repo 2>/dev/null
+  return 1
+}
+
+if [[ ! -d "$search_path" ]]; then
+  echo "Error: Not a directory: $search_path"
+  unfunction _wtprune_repo 2>/dev/null
+  return 1
+fi
+
+echo "Scanning for git repos under $search_path (depth: $max_depth)..."
+echo ""
+
+local -a repos=()
+local -A seen_repos=()
+local git_entry entry_parent resolved_root common_dir gitdir_ref
+while IFS= read -r git_entry; do
+  entry_parent=$(dirname "$git_entry")
+  # Resolve to main repo root (handles linked worktrees)
+  # Use GIT_DIR directly to avoid chpwd hooks (nvm etc.) polluting stdout
+  if [[ -d "$git_entry" ]]; then
+    common_dir=$(GIT_DIR="$git_entry" git rev-parse --git-common-dir 2>/dev/null) || continue
+  else
+    # .git file — read the gitdir pointer
+    gitdir_ref=$(head -1 "$git_entry" | sed 's/^gitdir: //')
+    [[ -z "$gitdir_ref" ]] && continue
+    # Resolve relative paths
+    if [[ "$gitdir_ref" != /* ]]; then
+      gitdir_ref="$entry_parent/$gitdir_ref"
+    fi
+    common_dir=$(GIT_DIR="$gitdir_ref" git rev-parse --git-common-dir 2>/dev/null) || continue
+  fi
+  # common_dir may be relative to GIT_DIR, resolve to absolute
+  if [[ "$common_dir" != /* ]]; then
+    if [[ -d "$git_entry" ]]; then
+      common_dir="$git_entry/$common_dir"
+    else
+      gitdir_ref=$(head -1 "$git_entry" | sed 's/^gitdir: //')
+      [[ "$gitdir_ref" != /* ]] && gitdir_ref="$entry_parent/$gitdir_ref"
+      common_dir="$gitdir_ref/$common_dir"
+    fi
+  fi
+  resolved_root=$(realpath "$common_dir/.." 2>/dev/null) || continue
+  # Deduplicate — multiple worktrees may point to the same repo
+  if [[ -z "${seen_repos[$resolved_root]}" ]]; then
+    seen_repos[$resolved_root]=1
+    repos+=("$resolved_root")
+  fi
+done < <(find "$search_path" -maxdepth "$((max_depth + 1))" -name .git \( -type d -o -type f \) 2>/dev/null | sort)
+
+if [[ ${#repos[@]} -eq 0 ]]; then
+  echo "No git repos found under $search_path"
+  unfunction _wtprune_repo 2>/dev/null
+  return 0
+fi
+
+echo "Found ${#repos[@]} repo(s):"
+for repo in "${repos[@]}"; do
+  echo "  - $(basename "$repo") ($repo)"
+done
+echo ""
+
+local total_failed=0
+for repo in "${repos[@]}"; do
+  _wtprune_repo "$repo"
+  ((total_failed += $?))
+done
+
+unfunction _wtprune_repo 2>/dev/null
+
+if [[ $total_failed -gt 0 ]]; then
+  return 1
+fi
