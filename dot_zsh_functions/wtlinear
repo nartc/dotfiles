@@ -1,10 +1,11 @@
 # wtlinear - Create a worktree from a Linear ticket (nrwl org only)
-# Usage: wtlinear <ticket-id> [--tmux <attach|detach|none>]
+# Usage: wtlinear <ticket-id> [--base <branch>] [--tmux <attach|detach|none>]
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: wtlinear <ticket-id> [--tmux <mode>]"
+  echo "Usage: wtlinear <ticket-id> [--base <branch>] [--tmux <mode>]"
   echo "Examples:"
   echo "  wtlinear ENG-1234                  # create worktree + attach tmux"
+  echo "  wtlinear ENG-1234 --base develop   # create worktree from develop branch"
   echo "  wtlinear ENG-1234 --tmux detach    # create worktree + detached tmux session"
   echo "  wtlinear ENG-1234 --tmux none      # create worktree, no tmux"
   return 1
@@ -12,10 +13,20 @@ fi
 
 local ticket_id=""
 local tmux_mode="attach"
+local base_branch="main"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --base)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --base requires a branch name"
+        return 1
+      fi
+      base_branch="$1"
+      shift
+      ;;
     --tmux)
       shift
       if [[ $# -eq 0 ]]; then
@@ -72,19 +83,75 @@ if [[ "$org_name" != "nrwl" ]]; then
 fi
 
 # Dependency checks
-if ! command -v claude &>/dev/null; then
-  echo "Error: claude CLI not found. Install it first."
-  return 1
-fi
-
-if ! command -v jq &>/dev/null; then
-  echo "Error: jq not found. Install it with: brew install jq"
-  return 1
-fi
+for cmd in opencode jq op curl; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "Error: ${cmd} not found."
+    return 1
+  fi
+done
 
 echo "Fetching Linear ticket ${ticket_id}..."
 
-local claude_prompt="Use the mcp__claude_ai_Linear__get_issue tool to fetch Linear ticket ${ticket_id}, then use mcp__claude_ai_Linear__list_comments tool to get its comments. Do NOT use WebFetch. Return ONLY a JSON object (no markdown fences, no explanation) with these fields:
+# Fetch Linear API token from 1Password
+local linear_token
+linear_token=$(op read "op://Chau Personal/linear pat/credential") || {
+  echo "Error: Failed to read Linear API token from 1Password"
+  return 1
+}
+
+# Fetch ticket data from Linear GraphQL API
+local gql_query api_tmpfile
+gql_query=$(jq -n --arg tid "$ticket_id" '{
+  query: "{ issue(id: \"\($tid)\") { title description comments { nodes { body createdAt user { name } } } } }"
+}')
+
+api_tmpfile=$(mktemp)
+
+curl -s https://api.linear.app/graphql \
+  -H "Authorization: $linear_token" \
+  -H "Content-Type: application/json" \
+  -d "$gql_query" -o "$api_tmpfile" || {
+  echo "Error: Failed to fetch from Linear API"
+  rm -f "$api_tmpfile"
+  return 1
+}
+
+# Check for API errors
+if jq -e '.errors' "$api_tmpfile" &>/dev/null; then
+  echo "Error: Linear API returned errors:"
+  jq '.errors' "$api_tmpfile"
+  rm -f "$api_tmpfile"
+  return 1
+fi
+
+# Extract raw fields
+local raw_title raw_description raw_comments
+raw_title=$(jq -r '.data.issue.title // empty' "$api_tmpfile")
+raw_description=$(jq -r '.data.issue.description // "No description"' "$api_tmpfile")
+raw_comments=$(jq -r '.data.issue.comments.nodes[] | "[\(.user.name) - \(.createdAt)]: \(.body)"' "$api_tmpfile" 2>/dev/null)
+
+if [[ -z "$raw_title" ]]; then
+  echo "Error: Could not find ticket ${ticket_id}"
+  echo "API response:"
+  jq . "$api_tmpfile"
+  rm -f "$api_tmpfile"
+  return 1
+fi
+
+rm -f "$api_tmpfile"
+
+# Summarize with OpenCode (non-interactive)
+local opencode_prompt="Given this Linear ticket, return ONLY a JSON object (no markdown fences, no explanation):
+
+Title: ${raw_title}
+
+Description:
+${raw_description}
+
+Comments:
+${raw_comments:-No comments}
+
+Return:
 {
   \"title\": \"the ticket title\",
   \"description_summary\": \"1-2 sentence summary of the description\",
@@ -92,41 +159,24 @@ local claude_prompt="Use the mcp__claude_ai_Linear__get_issue tool to fetch Line
   \"suggested_slug\": \"concise-kebab-case-slug-from-title (max 5 words)\"
 }"
 
-local claude_response claude_stderr
-claude_stderr=$(mktemp)
-claude_response=$(echo "$claude_prompt" | claude -p \
-  --model haiku \
-  --allowedTools "mcp__claude_ai_Linear__get_issue,mcp__claude_ai_Linear__list_comments" \
-  2>"$claude_stderr")
-
-if [[ -z "$claude_response" ]]; then
-  echo "Error: Failed to get response from Claude"
-  if [[ -s "$claude_stderr" ]]; then
-    echo "Claude stderr:"
-    cat "$claude_stderr"
-  fi
-  rm -f "$claude_stderr"
-  return 1
-fi
-rm -f "$claude_stderr"
+local opencode_response
+opencode_response=$(opencode run --model openai/gpt-5.4-mini "$opencode_prompt" 2>/dev/null)
 
 # Extract JSON from response (handle markdown fences, surrounding text, etc.)
-local raw_response="$claude_response"
-# Remove markdown code fences if present
-claude_response=$(echo "$claude_response" | sed 's/^```json//; s/^```//')
-# Extract the JSON object (possibly spanning multiple lines)
-claude_response=$(echo "$claude_response" | awk '/\{/{found=1} found{print} /\}/{if(found) exit}')
+local raw_response="$opencode_response"
+opencode_response=$(echo "$opencode_response" | sed 's/^```json//; s/^```//')
+opencode_response=$(echo "$opencode_response" | awk '/\{/{found=1} found{print} /\}/{if(found) exit}')
 
 # Parse JSON
 local title description_summary comments_summary slug
-title=$(echo "$claude_response" | jq -r '.title // empty' 2>/dev/null)
-description_summary=$(echo "$claude_response" | jq -r '.description_summary // empty' 2>/dev/null)
-comments_summary=$(echo "$claude_response" | jq -r '.comments_summary // empty' 2>/dev/null)
-slug=$(echo "$claude_response" | jq -r '.suggested_slug // empty' 2>/dev/null)
+title=$(echo "$opencode_response" | jq -r '.title // empty' 2>/dev/null)
+description_summary=$(echo "$opencode_response" | jq -r '.description_summary // empty' 2>/dev/null)
+comments_summary=$(echo "$opencode_response" | jq -r '.comments_summary // empty' 2>/dev/null)
+slug=$(echo "$opencode_response" | jq -r '.suggested_slug // empty' 2>/dev/null)
 
 if [[ -z "$title" || -z "$slug" ]]; then
   echo "Error: Failed to parse ticket information"
-  echo "Raw response from Claude:"
+  echo "Raw response from OpenCode:"
   echo "$raw_response"
   return 1
 fi
@@ -141,7 +191,7 @@ echo "Branch: ${branch_name}"
 echo ""
 
 # Create worktree
-wtadd "$dir_name" main --branch "$branch_name" --tmux none || return 1
+wtadd "$dir_name" "$base_branch" --branch "$branch_name" --tmux none || return 1
 
 # Resolve worktree path
 local worktree_base

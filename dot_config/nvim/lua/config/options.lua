@@ -8,7 +8,7 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   callback = function()
     local current_dir = vim.fn.expand("%:p:h")
     -- Disable EditorConfig for all nrwl projects
-    if vim.startswith(current_dir, "/Users/nartc/code/github/nrwl") then
+    if vim.startswith(current_dir, vim.fn.expand("~/code/github/nrwl")) then
       vim.b.editorconfig = false
     end
   end,

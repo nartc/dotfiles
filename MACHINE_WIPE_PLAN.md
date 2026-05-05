@@ -189,7 +189,7 @@ Contains:
 - Tunnel configs (app1: 4202, app2: 4203)
 
 ### Work Project Overrides
-**Location**: `/Users/nartc/code/github/nrwl/ocean/env.override`
+**Location**: `~/code/github/nrwl/ocean/env.override`
 
 Option 1 - Store in chezmoi and symlink:
 ```bash
@@ -197,7 +197,7 @@ Option 1 - Store in chezmoi and symlink:
 chezmoi add --encrypt ~/.config/work/ocean-env.override
 
 # After chezmoi apply, symlink to project:
-ln -sf ~/.config/work/ocean-env.override /Users/nartc/code/github/nrwl/ocean/env.override
+ln -sf ~/.config/work/ocean-env.override ~/code/github/nrwl/ocean/env.override
 ```
 
 Option 2 - Just document in manual checklist (if recreating is easy)
@@ -222,7 +222,7 @@ tap "mongodb/brew"
 tap "sst/tap"
 
 # ─────────────────────────────────────────────
-# Formulae (32)
+# Formulae
 # ─────────────────────────────────────────────
 brew "age"
 brew "awscli"
@@ -235,8 +235,10 @@ brew "fop"
 brew "fzf"
 brew "gemini-cli"
 brew "gh"
+brew "git"
 brew "go"
 brew "jq"
+brew "kubectl"
 brew "lazygit"
 brew "maven"
 brew "mkcert"
@@ -244,7 +246,9 @@ brew "mongosh"
 brew "mpd"
 brew "neovim"
 brew "nx"
+brew "openjdk"
 brew "openjdk@17"
+brew "pnpm"
 brew "pstree"
 brew "pyenv"
 brew "python@3.12"
@@ -266,7 +270,7 @@ brew "mongodb/brew/mongodb-database-tools"
 brew "sst/tap/opencode"
 
 # ─────────────────────────────────────────────
-# Casks (50)
+# Casks
 # ─────────────────────────────────────────────
 cask "1password"
 cask "1password-cli"
@@ -282,7 +286,6 @@ cask "firefox"
 cask "gcloud-cli"
 cask "ghostty"
 cask "google-chrome"
-cask "google-cloud-sdk"
 cask "homerow"
 cask "jetbrains-toolbox"
 cask "karabiner-elements"
@@ -324,7 +327,7 @@ EOF
 ## 5. Manual Backups
 
 ### 5.1 Obsidian Vault
-**Location**: `/Users/nartc/code/obsidian/chau note`
+**Location**: `~/code/obsidian/chau note`
 
 Backup entire folder to:
 - [ ] External drive
@@ -536,6 +539,17 @@ echo "Done. Note that some of these changes require a logout/restart to take eff
 
 **Source**: Based on your existing [dot_laptop.settings](https://github.com/nartc/dotfiles/blob/main/dot_laptop.settings)
 
+### 6.1 Development Runtime Bootstrap Script
+
+Create `~/.local/share/chezmoi/run_once_after_dev-runtimes-darwin.sh.tmpl` to automate first-apply runtime setup:
+
+- Install/set Node versions with fnm (`20.19.0`, `22.14.0`, `24.12.0`)
+- Install/set Python `3.12.12` with pyenv
+- Install Bun if missing
+- Install/update tmux plugins
+
+Use the version in this repo as source of truth and keep this checklist aligned when it changes.
+
 ---
 
 ## 7. Post-Wipe: New Machine Setup
@@ -567,7 +581,8 @@ This will:
 - Decrypt all encrypted secrets
 - Run Brewfile to install all packages
 - Apply macOS defaults
-- Symlink all config files
+- Materialize all managed config files
+- Run runtime bootstrap (`run_once_after_dev-runtimes-darwin.sh.tmpl`)
 
 ### Step 5: Follow Manual Setup Checklist (below)
 
@@ -650,7 +665,7 @@ Open `~/.config/licenses.txt` (decrypted by chezmoi) and enter keys:
 - [ ] Enter license key
 
 **Obsidian**
-- [ ] Restore vault from backup to `/Users/nartc/code/obsidian/chau note`
+- [ ] Restore vault from backup to `~/code/obsidian/chau note`
 - [ ] Open Obsidian → Open folder as vault
 
 **Claude Desktop**
@@ -659,26 +674,43 @@ Open `~/.config/licenses.txt` (decrypted by chezmoi) and enter keys:
 
 **Claude Code (CLI)**
 - [ ] CLAUDE.md, settings.json, agents/, commands/ restored by chezmoi
-- [ ] Install skills: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev, react-best-practices)
+- [ ] After Node.js setup below: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev, react-best-practices)
 
 **OpenCode**
 - [ ] opencode.json, agent/ restored by chezmoi
-- [ ] Install skills: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev)
+- [ ] After Node.js setup below: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev)
 
 ### Development Environment
 
-**Node.js (fnm)**
+Fresh setup now automates these via run scripts:
+
+- fnm install/default: `20.19.0`, `22.14.0`, `24.12.0`
+- pnpm install via Homebrew Brewfile
+- pyenv install/global: `3.12.12`
+- Bun install (if missing)
+- tmux TPM plugin install/update
+
+Verify:
+
 ```bash
-fnm install 20.19.0
-fnm default 20.19.0
-fnm install 22.14.0
-fnm install 24.12.0
+fnm current
+node -v
+pnpm -v
+python3 --version
+bun --version
+~/.config/tmux/plugins/tpm/bin/install_plugins
 ```
 
-**Python (pyenv)**
+If any step failed during `chezmoi apply`, run manually:
+
 ```bash
-pyenv install 3.12.12
-pyenv global 3.12.12
+fnm install 20.19.0 && fnm default 20.19.0
+fnm install 22.14.0
+fnm install 24.12.0
+brew install pnpm
+pyenv install 3.12.12 && pyenv global 3.12.12
+curl -fsSL https://bun.sh/install | bash
+~/.config/tmux/plugins/tpm/bin/install_plugins
 ```
 
 **Elixir/Erlang**
@@ -691,21 +723,12 @@ pyenv global 3.12.12
 # OTP: 27.2.3
 ```
 
-**Bun**
-```bash
-curl -fsSL https://bun.sh/install | bash
-```
-
-**tmux**
-- [ ] Open tmux
-- [ ] Press `prefix + I` to install TPM plugins
-
 ### Work Project Setup
 
 **Ocean env.override**
 ```bash
 # After cloning nrwl/ocean repo, symlink the env.override:
-ln -sf ~/.config/work/ocean-env.override /Users/nartc/code/github/nrwl/ocean/env.override
+ln -sf ~/.config/work/ocean-env.override ~/code/github/nrwl/ocean/env.override
 ```
 
 ### Kubernetes (if needed)

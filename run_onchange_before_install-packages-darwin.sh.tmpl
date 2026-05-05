@@ -1,7 +1,7 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/bin/bash
 
-brew bundle --file=/dev/stdin <<EOF
+brew bundle --no-lock --file=/dev/stdin <<EOF
 # Taps
 tap "derailed/k9s"
 tap "jandedobbeleer/oh-my-posh"
@@ -11,7 +11,7 @@ tap "mongodb/brew"
 tap "sst/tap"
 
 # ─────────────────────────────────────────────
-# Formulae (32)
+# Formulae
 # ─────────────────────────────────────────────
 brew "age"
 brew "awscli"
@@ -24,8 +24,10 @@ brew "fop"
 brew "fzf"
 brew "gemini-cli"
 brew "gh"
+brew "git"
 brew "go"
 brew "jq"
+brew "kubectl"
 brew "lazygit"
 brew "maven"
 brew "mkcert"
@@ -33,7 +35,9 @@ brew "mongosh"
 brew "mpd"
 brew "neovim"
 brew "nx"
+brew "openjdk"
 brew "openjdk@17"
+brew "pnpm"
 brew "pstree"
 brew "pyenv"
 brew "python@3.12"
@@ -55,13 +59,14 @@ brew "mongodb/brew/mongodb-database-tools"
 brew "sst/tap/opencode"
 
 # ─────────────────────────────────────────────
-# Casks (50)
+# Casks
 # ─────────────────────────────────────────────
 cask "1password"
 cask "1password-cli"
 cask "brave-browser"
 cask "claude"
 cask "cleanshot"
+cask "cloudflare-warp"
 cask "cursor"
 cask "discord"
 cask "dotnet-sdk"
@@ -70,7 +75,6 @@ cask "firefox"
 cask "gcloud-cli"
 cask "ghostty"
 cask "google-chrome"
-cask "google-cloud-sdk"
 cask "homerow"
 cask "jetbrains-toolbox"
 cask "karabiner-elements"
@@ -89,8 +93,10 @@ cask "slack"
 cask "spotify"
 cask "superhuman"
 cask "superwhisper"
+cask "telegram"
 cask "visual-studio-code"
 cask "zed"
+cask "zen-browser"
 cask "zoom"
 
 # ─────────────────────────────────────────────

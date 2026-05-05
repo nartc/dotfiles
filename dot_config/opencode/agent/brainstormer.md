@@ -1,11 +1,10 @@
 ---
 description: Creative ideation agent for brainstorming application ideas, features, and solutions. Generates realistic, actionable ideas and produces structured outputs ready for planning agents. Use when exploring possibilities before committing to a direction.
 mode: primary
-model: anthropic/claude-opus-4-6
+model: openai/gpt-5.4
 temperature: 0.5
-tools:
-  edit: true
 permission:
+  edit: deny
   bash:
     "*": deny
 ---

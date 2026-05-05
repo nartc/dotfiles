@@ -84,6 +84,7 @@ alias sandbox="cd ~/code/sandbox"
 
 eval "$(fnm env --use-on-cd)"
 export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+export PATH="$HOME/.local/share/bob/nvim-bin:$PATH"
 
 # Java version switcher function
 setjava() {
@@ -108,7 +109,7 @@ setjava() {
 
 # Autoload custom functions (lazy-loaded on first use)
 fpath=(~/.zsh_functions $fpath)
-autoload -Uz killtree killport showtree_port start_dte start_agent clean_output_tsc snapshot_forward snapshot_forward_api snapshot_forward_workflow owadd owremove owprune owpr _wt_resolve_base _wt_tmux_session wtadd wtpr wtremove wtprune wtlinear chauwt-setup ccrka minio
+autoload -Uz killtree killport showtree_port start_dte start_agent clean_output_tsc snapshot_forward snapshot_forward_api snapshot_forward_workflow owadd owremove owprune owpr _wt_resolve_base _wt_tmux_session wtadd wtpr wtremove wtprune wtlinear wtnight chauwt-setup ccrka minio
 
 # bun completions (deferred, after compinit)
 zinit wait"1" lucid is-snippet for /Users/nartc/.bun/_bun

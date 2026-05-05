@@ -1,1 +1,2 @@
 # . "$HOME/.cargo/env"
+. "/Users/nartc/.local/share/bob/env/env.sh"

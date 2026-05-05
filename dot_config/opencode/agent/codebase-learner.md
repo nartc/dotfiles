@@ -1,12 +1,10 @@
 ---
 description: Deep codebase understanding agent for learning new codebases. Maps architecture, traces data flows, explains patterns, and builds mental models. Use when onboarding to a new project or exploring unfamiliar code.
 mode: primary
-model: google/gemini-2.5-pro
+model: openai/gpt-5.4
 temperature: 0.2
-tools:
-  write: false
-  edit: false
 permission:
+  edit: deny
   bash:
     "git log*": allow
     "git blame*": allow
