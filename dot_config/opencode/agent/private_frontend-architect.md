@@ -1,7 +1,7 @@
 ---
 description: Expert architectural guidance for React Router 7 or Remix applications. Route hierarchy, loaders/actions, data fetching, auth flows, code splitting, error boundaries, and state management trade-offs.
 mode: subagent
-model: openai/gpt-5.4
+model: openai/gpt-5.5
 permission:
   edit: deny
   bash: deny

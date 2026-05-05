@@ -1,3 +1,8 @@
 .idea
 .idea/**
 .DS_Store
+
+# SSH private keys are per-device bootstrap artifacts, not dotfiles.
+# Generate a fresh key on each laptop and add the public key to GitHub/Bitbucket.
+private_dot_ssh/encrypted_private_id_ed25519.age
+private_dot_ssh/encrypted_id_ed25519.pub.age

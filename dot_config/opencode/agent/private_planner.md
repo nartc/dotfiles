@@ -1,7 +1,7 @@
 ---
 description: Software architect agent for designing implementation plans. Explores trade-offs, proposes approaches, and gets user buy-in before any code is written.
 mode: all
-model: openai/gpt-5.4
+model: openai/gpt-5.5
 temperature: 0.3
 permission:
   edit: deny

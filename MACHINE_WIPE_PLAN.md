@@ -123,7 +123,7 @@ gh repo create dotfiles --private --source=. --push
 ### OpenCode (`~/.config/opencode/`)
 | File | Command | Notes |
 |------|---------|-------|
-| `~/.config/opencode/opencode.json` | `chezmoi add ~/.config/opencode/opencode.json` | MCP servers (github, linear, exa, context7, grep-app) |
+| `~/.config/opencode/opencode.json` | `chezmoi add --encrypt ~/.config/opencode/opencode.json` | MCP servers; encrypted because local MCP environment can contain tokens |
 | `~/.config/opencode/agent/` | `chezmoi add ~/.config/opencode/agent` | 10 agents: a11y, auth0, brainstormer, codebase-learner, frontend-architect, frontend-ui-ux, librarian, nx-typecheck, orchestrator, planner |
 
 **Skip**: skills/ (managed via `npx skills`), node_modules/, bun.lock
@@ -133,9 +133,21 @@ gh repo create dotfiles --private --source=. --push
 ## 3. Encrypted Secrets
 
 ### SSH Keys
+
+Chezmoi manages `~/.ssh/config`, but SSH keypairs are per-device and should not be applied from this repo by default.
+
+For each fresh laptop:
+
 ```bash
-chezmoi add --encrypt ~/.ssh/id_ed25519
-chezmoi add --encrypt ~/.ssh/id_ed25519.pub
+ssh-keygen -t ed25519 -C "nartc@$(hostname)"
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+Then add `~/.ssh/id_ed25519.pub` to GitHub/Bitbucket.
+
+Legacy encrypted SSH key files can stay in the repo temporarily as a migration backup, but `.chezmoiignore` prevents them from applying by default.
+
+```bash
 chezmoi add ~/.ssh/config  # not encrypted
 ```
 
@@ -204,123 +216,26 @@ Option 2 - Just document in manual checklist (if recreating is easy)
 
 ---
 
-## 4. Homebrew Brewfile
+## 4. Homebrew Bundle
 
-Create `~/.local/share/chezmoi/run_onchange_before_install-packages-darwin.sh.tmpl`:
+Source of truth: `run_onchange_before_install-packages-darwin.sh.tmpl`.
+
+The repo keeps Homebrew entries inline in the chezmoi run script instead of a standalone `Brewfile`.
+
+Refresh workflow:
 
 ```bash
-{{- if eq .chezmoi.os "darwin" -}}
-#!/bin/bash
-
-brew bundle --no-lock --file=/dev/stdin <<EOF
-# Taps
-tap "derailed/k9s"
-tap "jandedobbeleer/oh-my-posh"
-tap "jesseduffield/lazydocker"
-tap "kopecmaciej/vi-mongo"
-tap "mongodb/brew"
-tap "sst/tap"
-
-# ─────────────────────────────────────────────
-# Formulae
-# ─────────────────────────────────────────────
-brew "age"
-brew "awscli"
-brew "chezmoi"
-brew "coreutils"
-brew "ente-cli"
-brew "fd"
-brew "fnm"
-brew "fop"
-brew "fzf"
-brew "gemini-cli"
-brew "gh"
-brew "git"
-brew "go"
-brew "jq"
-brew "kubectl"
-brew "lazygit"
-brew "maven"
-brew "mkcert"
-brew "mongosh"
-brew "mpd"
-brew "neovim"
-brew "nx"
-brew "openjdk"
-brew "openjdk@17"
-brew "pnpm"
-brew "pstree"
-brew "pyenv"
-brew "python@3.12"
-brew "ralph-orchestrator"
-brew "rebar3"
-brew "slides"
-brew "sponge"
-brew "tmux"
-brew "tmux-sessionizer"
-brew "tree"
-brew "tree-sitter-cli"
-brew "trivy"
-brew "wxwidgets"
-brew "derailed/k9s/k9s"
-brew "jandedobbeleer/oh-my-posh/oh-my-posh"
-brew "jesseduffield/lazydocker/lazydocker"
-brew "kopecmaciej/vi-mongo/vi-mongo"
-brew "mongodb/brew/mongodb-database-tools"
-brew "sst/tap/opencode"
-
-# ─────────────────────────────────────────────
-# Casks
-# ─────────────────────────────────────────────
-cask "1password"
-cask "1password-cli"
-cask "brave-browser"
-cask "claude"
-cask "cleanshot"
-cask "cloudflare-warp"
-cask "cursor"
-cask "discord"
-cask "dotnet-sdk"
-cask "ente-auth"
-cask "firefox"
-cask "gcloud-cli"
-cask "ghostty"
-cask "google-chrome"
-cask "homerow"
-cask "jetbrains-toolbox"
-cask "karabiner-elements"
-cask "keysmith"
-cask "linear-linear"
-cask "loom"
-cask "mongodb-compass"
-cask "ngrok"
-cask "nordvpn"
-cask "notion"
-cask "obsidian"
-cask "orbstack"
-cask "raycast"
-cask "screenflow"
-cask "slack"
-cask "spotify"
-cask "superhuman"
-cask "superwhisper"
-cask "telegram"
-cask "visual-studio-code"
-cask "zed"
-cask "zen-browser"
-cask "zoom"
-
-# ─────────────────────────────────────────────
-# Fonts (5)
-# ─────────────────────────────────────────────
-cask "font-adwaita-mono-nerd-font"
-cask "font-commit-mono-nerd-font"
-cask "font-hack-nerd-font"
-cask "font-jetbrains-mono-nerd-font"
-cask "font-ubuntu-mono-nerd-font"
-EOF
-{{ end -}}
+brew bundle dump --file=/tmp/current.Brewfile --force
 ```
+
+Then compare `/tmp/current.Brewfile` against the inline heredoc in `run_onchange_before_install-packages-darwin.sh.tmpl` and update the script manually so comments/grouping stay readable.
+
+Current intentional additions beyond the dump:
+
+- `cask "kitty"` because Kitty is now part of the terminal setup alongside Ghostty.
+- `brew "pnpm"` so fresh machines have pnpm even if the current machine gets it from Node/fnm state.
+
+Vanta is intentionally documented-only and not installed by Homebrew.
 
 ---
 
@@ -386,11 +301,13 @@ sudo -v
 # Keep-alive: update sudo timestamp
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-# Set standby delay to 24 hours (default is 1 hour)
-sudo pmset -a standbydelay 86400
-
-# Disable "Are you sure you want to open this application?" dialog
-defaults write com.apple.LaunchServices LSQuarantine -bool false
+# Keep long-running agent loops alive while plugged in.
+# Battery power settings intentionally stay at macOS defaults.
+sudo pmset -c sleep 0
+sudo pmset -c disksleep 0
+sudo pmset -c displaysleep 15
+sudo pmset -c powernap 1
+sudo pmset -c tcpkeepalive 1
 
 # Require password immediately after sleep or screen saver
 defaults write com.apple.screensaver askForPassword -int 1
@@ -492,7 +409,7 @@ defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
 # ─────────────────────────────────────────────
 # Enable firewall
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
-# Note: Remote login (SSH) left enabled
+# This script does not modify Remote Login (SSH).
 
 # ─────────────────────────────────────────────
 # Bluetooth
@@ -565,7 +482,7 @@ brew install chezmoi age
 ```
 
 ### Step 3: Restore age key
-Copy `key.txt` from USB backup to:
+Copy `key.txt` from 1Password to:
 ```bash
 mkdir -p ~/.config/chezmoi
 # Copy key.txt to ~/.config/chezmoi/key.txt
@@ -584,6 +501,8 @@ This will:
 - Materialize all managed config files
 - Run runtime bootstrap (`run_once_after_dev-runtimes-darwin.sh.tmpl`)
 
+This will not apply SSH private keys. Generate a fresh SSH key per laptop in the manual checklist below.
+
 ### Step 5: Follow Manual Setup Checklist (below)
 
 ---
@@ -593,9 +512,14 @@ This will:
 ### Immediate (After chezmoi apply)
 
 **SSH Keys**
-- [ ] `chmod 600 ~/.ssh/id_ed25519`
-- [ ] `ssh-add ~/.ssh/id_ed25519`
+- [ ] `ssh-keygen -t ed25519 -C "nartc@$(hostname)"`
+- [ ] `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`
+- [ ] Add `~/.ssh/id_ed25519.pub` to GitHub
+- [ ] Add `~/.ssh/id_ed25519.pub` to Bitbucket if needed
 - [ ] Test: `ssh -T git@github.com`
+
+**Vanta**
+- [ ] Install and enroll Vanta manually
 
 **Shell**
 - [ ] Restart terminal or `source ~/.zshrc`

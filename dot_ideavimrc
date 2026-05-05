@@ -63,13 +63,26 @@ map Q gq
 map :w :wa
 map :W :w
 
-map <leader>b <Action>(ToggleLineBreakpoint)
-map <leader>f <Plug>(easymotion-s)
-map <leader>F <Plug>(easymotion-f)
-map <S-Space> <Action>(GotoNextError)
-map <leader>cr <Action>(RenameElement)
+" LazyVim-ish IDE navigation/actions
 map <leader>ca <Action>(ShowIntentionActions)
+map gd <Action>(GotoDeclaration)
+map gr <Action>(FindUsages)
+map <leader>cr <Action>(RenameElement)
+map K <Action>(ShowHoverInfo)
+map <leader>cd <Action>(ShowErrorDescription)
+map <leader>sg <Action>(FindInPath)
+map <leader>ff <Action>(GotoFile)
+map <leader>ss <Action>(GotoSymbol)
+map <leader>ge <Action>(ActivateVersionControlToolWindow)
+
+" Extra IDE conveniences
+map <leader>b <Action>(ToggleLineBreakpoint)
+map <S-Space> <Action>(GotoNextError)
 map <leader>e <Action>(SelectInProjectView)
 map <C-k> <Action>(ShowHoverInfo)
 map <leader><leader> <Action>(RecentFiles)
 map <leader>t <Action>(ActivateTerminalToolWindow)
+
+" Easymotion fallback, kept off <leader>f so <leader>ff matches LazyVim find files.
+map <leader>j <Plug>(easymotion-s)
+map <leader>J <Plug>(easymotion-f)

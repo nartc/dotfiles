@@ -16,11 +16,13 @@ sudo -v
 # Keep-alive: update sudo timestamp
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-# Set standby delay to 24 hours (default is 1 hour)
-sudo pmset -a standbydelay 86400
-
-# Disable "Are you sure you want to open this application?" dialog
-defaults write com.apple.LaunchServices LSQuarantine -bool false
+# Keep long-running agent loops alive while plugged in.
+# Battery power settings intentionally stay at macOS defaults.
+sudo pmset -c sleep 0
+sudo pmset -c disksleep 0
+sudo pmset -c displaysleep 15
+sudo pmset -c powernap 1
+sudo pmset -c tcpkeepalive 1
 
 # Require password immediately after sleep or screen saver
 defaults write com.apple.screensaver askForPassword -int 1
@@ -122,7 +124,7 @@ defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
 # ─────────────────────────────────────────────
 # Enable firewall
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
-# Note: Remote login (SSH) left enabled
+# This script does not modify Remote Login (SSH).
 
 # ─────────────────────────────────────────────
 # Bluetooth

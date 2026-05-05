@@ -1,7 +1,7 @@
 ---
 description: A designer-turned-developer who crafts stunning UI/UX even without design mockups. Code may be a bit messy, but the visual output is always fire.
 mode: subagent
-model: openai/gpt-5.3-codex
+model: openai/gpt-5.5
 permission:
   bash: deny
 ---

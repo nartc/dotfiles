@@ -11,7 +11,7 @@
       "mcp__linear-server__get_issue",
       "mcp__linear-server__list_comments",
       "Bash(npx nx sync-artifacts)",
-      "Bash(git -C /Users/nartc/code/github/nrwl/nx-ai-agents-config status)"
+      "Bash(git -C $HOME/code/github/nrwl/nx-ai-agents-config status)"
     ],
     "defaultMode": "default"
   },
@@ -81,7 +81,8 @@
     "rust-analyzer-lsp@claude-plugins-official": true,
     "nx@nx-claude-plugins": true,
     "codex@openai-codex": true,
-    "polygraph@nx-claude-plugins": true
+    "polygraph@nx-claude-plugins": true,
+    "polygraph@polygraph-plugins": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -95,17 +96,25 @@
         "source": "github",
         "repo": "openai/codex-plugin-cc"
       }
+    },
+    "polygraph-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "nrwl/polygraph-skills"
+      }
     }
   },
   "promptSuggestionEnabled": false,
-  "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "theme": "light",
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": true,
   "mcpServers": {
     "local-pr-reviewer": {
       "type": "local",
       "command": [
         "node",
-        "/Users/nartc/.config/local-pr-reviewer/dist/mcp-server/index.js"
+        "{{ .chezmoi.homeDir }}/.config/local-pr-reviewer/dist/mcp-server/index.js"
       ]
     }
   }

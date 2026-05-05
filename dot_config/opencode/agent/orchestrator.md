@@ -1,7 +1,7 @@
 ---
 description: Implements complex tasks by orchestrating multiple subagents, intelligently parallelizing independent work
 mode: primary
-model: openai/gpt-5.3-codex
+model: openai/gpt-5.5
 temperature: 0.2
 ---
 

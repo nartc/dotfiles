@@ -1,7 +1,7 @@
 ---
 description: Specialized research agent for remote repositories and library internals. Use for OSS source lookup, official docs, and real-world implementation examples.
 mode: subagent
-model: openai/gpt-5.4
+model: openai/gpt-5.5
 temperature: 0.1
 permission:
   edit: deny
