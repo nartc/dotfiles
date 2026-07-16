@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# nartcdotfiles is the supported full-machine setup command. It owns side
+# effects that must not be hidden in Chezmoi run_once/run_onchange scripts.
+set -euo pipefail
+
+readonly source_root_default="$HOME/.local/share/chezmoi"
+readonly state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/nartcdotfiles"
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source_root="${NARTCDOTFILES_SOURCE_DIR:-$source_root_default}"
+if [[ ! -f "$source_root/dot_local/share/nartcdotfiles/lib.sh" ]]; then
+  source_root="$(cd "$script_dir/../.." && pwd)"
+fi
+
+if [[ ! -f "$source_root/dot_local/share/nartcdotfiles/lib.sh" ]]; then
+  printf 'Cannot locate the nartcdotfiles source directory. Set NARTCDOTFILES_SOURCE_DIR.\n' >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "$source_root/dot_local/share/nartcdotfiles/lib.sh"
+
+usage() {
+  cat <<'EOF'
+Usage: nartcdotfiles <command>
+
+Commands:
+  apply  Reconcile packages, Chezmoi files, runtimes, plugins, and checks.
+  check  Inspect the installed configuration without changing it.
+  help   Show this help.
+
+On a freshly cloned Chezmoi source, run:
+  bash ~/.local/share/chezmoi/dot_local/bin/executable_nartcdotfiles apply
+EOF
+}
+
+main() {
+  local action="${1:-help}"
+
+  case "$action" in
+    apply)
+      nartcdotfiles_apply "$source_root" "$state_dir"
+      ;;
+    check)
+      nartcdotfiles_check "$source_root"
+      ;;
+    help|-h|--help)
+      usage
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

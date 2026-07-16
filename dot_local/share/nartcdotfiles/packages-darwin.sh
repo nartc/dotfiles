@@ -1,7 +1,13 @@
-{{- if eq .chezmoi.os "darwin" -}}
-#!/bin/bash
+#!/usr/bin/env bash
 
-brew bundle --file=- <<EOF
+set -euo pipefail
+
+command -v brew >/dev/null 2>&1 || {
+  printf 'Homebrew is required before running the macOS package phase.\n' >&2
+  exit 1
+}
+
+brew bundle --file=- <<'EOF'
 # Taps
 tap "derailed/k9s"
 tap "jandedobbeleer/oh-my-posh"
@@ -117,4 +123,3 @@ cask "font-zed-mono-nerd-font"
 # uv-managed tools from current machine
 uv "sqlit-tui"
 EOF
-{{ end -}}

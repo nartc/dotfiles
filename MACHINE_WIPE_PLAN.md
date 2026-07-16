@@ -1,7 +1,7 @@
 # Machine Wipe Plan with chezmoi
 
 > Generated: 2026-02-05
-> Last updated before wipe: ____
+> Last updated: 2026-07-15
 
 ---
 
@@ -110,23 +110,63 @@ gh repo create dotfiles --private --source=. --push
 
 > **Skip**: `~/.config/raycast/extensions/` — store-installed extension bundles (compiled JS), no secrets. Re-downloaded automatically when signing into Raycast. Use Raycast export/import (section 5.4) instead.
 
-### Claude Code (`~/.claude/`)
-| File | Command | Notes |
+### AI Configuration
+
+The canonical, authored AI configuration is now tracked in this repository. Do not use `chezmoi add -f` for the managed symlinks below: preserve the symlink rather than copying its target.
+
+#### Shared AI source (`~/.config/ai/`)
+
+| Path | Command | Notes |
 |------|---------|-------|
-| `~/.claude/CLAUDE.md` | `chezmoi add ~/.claude/CLAUDE.md` | Custom instructions (agent delegation, plan mode rules) |
-| `~/.claude/settings.json` | `chezmoi add ~/.claude/settings.json` | MCP server configs |
-| `~/.claude/agents/` | `chezmoi add ~/.claude/agents` | 5 custom agents: a11y-ui-expert, auth0-research-specialist, frontend-architect, gemini-analyzer, nx-typecheck-invoker |
-| `~/.claude/commands/` | `chezmoi add ~/.claude/commands` | Custom slash commands (local-pr-review.md) |
+| `agents.md`, `tooling-inventory.md`, `skills-sources.lock.json`, `knowledge-base-plan.md` | `chezmoi add ~/.config/ai/<file>` | Shared behavior, inventory, provenance, and setup plan |
+| `skills/` | `chezmoi add ~/.config/ai/skills` | Canonical portable skills and references |
+| `harness/` | `chezmoi add ~/.config/ai/harness` | Runtime-specific skills |
 
-**Skip**: skills/ (managed via `npx skills`), history.jsonl, transcripts/, todos/, debug/, cache/
+**Skip**: `~/.config/ai/knowledge-base/` — durable work/private data, not machine configuration. Back it up separately with its privacy policy.
 
-### OpenCode (`~/.config/opencode/`)
-| File | Command | Notes |
+#### Compatibility skills (`~/.agents/`)
+
+| Path | Command | Notes |
 |------|---------|-------|
-| `~/.config/opencode/opencode.json` | `chezmoi add --encrypt ~/.config/opencode/opencode.json` | MCP servers; encrypted because local MCP environment can contain tokens |
-| `~/.config/opencode/agent/` | `chezmoi add ~/.config/opencode/agent` | 10 agents: a11y, auth0, brainstormer, codebase-learner, frontend-architect, frontend-ui-ux, librarian, nx-typecheck, orchestrator, planner |
+| `~/.agents/skills` | `chezmoi add ~/.agents/skills` | Symlink to `~/.config/ai/skills` |
+| `~/.agents/.skill-lock.json` | `chezmoi add ~/.agents/.skill-lock.json` | Installed-skill metadata |
 
-**Skip**: skills/ (managed via `npx skills`), node_modules/, bun.lock
+**Skip**: `~/.agents/plugins/` — plugin-managed/vendor content.
+
+#### Claude Code (`~/.claude/`)
+
+| Path | Command | Notes |
+|------|---------|-------|
+| `CLAUDE.md` | `chezmoi add ~/.claude/CLAUDE.md` | Symlink to `~/.config/ai/agents.md` |
+| `settings.json` | `chezmoi add --template ~/.claude/settings.json` | Global settings and plugin selection |
+| `agents/`, `commands/` | `chezmoi add ~/.claude/agents ~/.claude/commands` | Authored custom agents and slash commands |
+| `policy-limits.json`, `package.json` | `chezmoi add ~/.claude/policy-limits.json ~/.claude/package.json` | Runtime policy and module mode |
+| `skills/` | `chezmoi add ~/.claude/skills` | Symlinks to canonical portable/harness skills |
+
+**Skip**: auth caches, history, sessions, tasks, teams, telemetry, downloads, backups, file history, plugin caches, and other runtime directories.
+
+#### OpenCode (`~/.config/opencode/`)
+
+| Path | Command | Notes |
+|------|---------|-------|
+| `opencode.json` | `chezmoi add --encrypt ~/.config/opencode/opencode.json` | MCP configuration; encrypted because local MCP environment can contain secret references |
+| `AGENTS.md` | `chezmoi add ~/.config/opencode/AGENTS.md` | Symlink to the shared instructions |
+| `agent/`, `command/`, `commands/` | `chezmoi add ~/.config/opencode/agent ~/.config/opencode/command ~/.config/opencode/commands` | Authored agents and commands |
+| `skills/` | `chezmoi add ~/.config/opencode/skills` | Symlinks to canonical harness skills |
+| `package.json`, `settings.json` | `chezmoi add ~/.config/opencode/package.json ~/.config/opencode/settings.json` | Small runtime settings |
+
+**Skip**: `node_modules/`, package lockfiles, and empty/generated hook directories. Restart OpenCode after applying agent, skill, command, or config changes.
+
+#### Codex (`~/.codex/`)
+
+| Path | Command | Notes |
+|------|---------|-------|
+| `AGENTS.md` | `chezmoi add ~/.codex/AGENTS.md` | Symlink to the shared instructions |
+| `config.toml` | `chezmoi add ~/.codex/config.toml` | Private tracked config, including model/plugin/project-trust state |
+| `agents/`, `hooks.json` | `chezmoi add ~/.codex/agents ~/.codex/hooks.json` | Custom Polygraph agents and Stop hook |
+| `skills/ship-pg` | `chezmoi add ~/.codex/skills/ship-pg` | Symlink to the portable skill |
+
+**Skip**: `auth.json`, sessions/history, caches, databases, logs, downloaded packages/plugins, vendor imports, `.system` skills, and `rules/default.rules`. The rules file is a history-specific permission allowlist and should not be restored as portable policy.
 
 ---
 
@@ -488,20 +528,25 @@ mkdir -p ~/.config/chezmoi
 # Copy key.txt to ~/.config/chezmoi/key.txt
 ```
 
-### Step 4: Initialize and apply chezmoi
+### Step 4: Initialize chezmoi and run the setup runner
 ```bash
-chezmoi init --apply nartc
+chezmoi init nartc
+bash ~/.local/share/chezmoi/dot_local/bin/executable_nartcdotfiles apply
 ```
 
 This will:
 - Clone your dotfiles repo
 - Decrypt all encrypted secrets
-- Run Brewfile to install all packages
-- Apply macOS defaults
-- Materialize all managed config files
-- Run runtime bootstrap (`run_once_after_dev-runtimes-darwin.sh.tmpl`)
+- Reconcile platform packages and developer runtimes
+- Apply macOS defaults when running on macOS
+- Materialize shared AI config, runtime agents, commands, and skill symlinks
+- Bootstrap tmux and LazyVim plugins
+- Verify the resulting configuration and log each phase under `~/.local/state/nartcdotfiles/`
 
 This will not apply SSH private keys. Generate a fresh SSH key per laptop in the manual checklist below.
+
+If a phase fails, fix the reported issue and rerun `nartcdotfiles apply`; the
+runner checks actual state and is safe to restart from the beginning.
 
 ### Step 5: Follow Manual Setup Checklist (below)
 
@@ -597,12 +642,19 @@ Open `~/.config/licenses.txt` (decrypted by chezmoi) and enter keys:
 - [ ] Manually recreate Projects from exported markdown files
 
 **Claude Code (CLI)**
-- [ ] CLAUDE.md, settings.json, agents/, commands/ restored by chezmoi
-- [ ] After Node.js setup below: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev, react-best-practices)
+- [ ] `CLAUDE.md`, settings, agents, commands, and skills symlinks restored by chezmoi
+- [ ] Sign in and re-enable/install only the plugins required for this machine
+- [ ] Start a new Claude Code session after applying configuration
 
 **OpenCode**
-- [ ] opencode.json, agent/ restored by chezmoi
-- [ ] After Node.js setup below: `npx skills` (find-skills, local-pr-reviewer-setup, remotion-best-practices, slidev)
+- [ ] `opencode.json`, shared instructions, agents, commands, and harness skill symlinks restored by chezmoi
+- [ ] Authenticate providers and enable credentialed MCP servers only when needed
+- [ ] Quit and restart OpenCode after applying configuration
+
+**Codex**
+- [ ] Shared instructions, config, custom agents, Stop hook, and `ship-pg` skill symlink restored by chezmoi
+- [ ] Sign in again; `auth.json` is intentionally not restored
+- [ ] Start a new Codex session after applying configuration
 
 ### Development Environment
 

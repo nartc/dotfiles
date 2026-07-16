@@ -2,7 +2,7 @@ ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
 # Download zinit if it's not there
 if [ ! -d "$ZINIT_HOME" ]; then
-	mkdir -p "$(dirname $ZINIT_HOME)"
+	mkdir -p "$(dirname "$ZINIT_HOME")"
 	git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
@@ -30,6 +30,7 @@ zinit wait lucid atload'
 
 
 export EDITOR=nvim
+[[ -S "$HOME/.1password/agent.sock" ]] && export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
 
 autoload -z edit-command-line
 zle -N edit-command-line
@@ -78,30 +79,64 @@ alias ls='ls -lAhF --color'
 alias ghc="cd ~/code/github"
 alias ncu="pnpm --package=npm-check-updates dlx ncu --format group"
 alias pnx="pnpm exec"
+alias oc="opencode"
 # list all available simulators
 alias listios="xcrun simctl list devices"
 alias sandbox="cd ~/code/sandbox"
 
-eval "$(fnm env --use-on-cd)"
-export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+if command -v fnm >/dev/null 2>&1; then
+  eval "$(fnm env --use-on-cd)"
+fi
+if command -v brew >/dev/null 2>&1; then
+  OPENJDK_21_HOME="$(brew --prefix openjdk@21 2>/dev/null)/libexec/openjdk.jdk/Contents/Home"
+  OPENJDK_21_BIN="$(brew --prefix openjdk@21 2>/dev/null)/bin"
+  if [[ -d "$OPENJDK_21_HOME" && -d "$OPENJDK_21_BIN" ]]; then
+    export JAVA_HOME="$OPENJDK_21_HOME"
+    export PATH="$OPENJDK_21_BIN:$PATH"
+  fi
+fi
 export PATH="$HOME/.local/share/bob/nvim-bin:$PATH"
 
 # Java version switcher function
 setjava() {
+    local formula=""
+    local java_home=""
+    local java_bin=""
+
+    command -v brew >/dev/null 2>&1 || {
+        echo "setjava requires Homebrew-managed OpenJDK installations"
+        return 1
+    }
+
     case $1 in
         17)
-            export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
-            export PATH="/opt/homebrew/opt/openjdk@17/bin:${PATH//\/opt\/homebrew\/opt\/openjdk@17\/bin:/}"
+            formula="openjdk@17"
+            ;;
+        21)
+            formula="openjdk@21"
             ;;
         23)
-            export JAVA_HOME=/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home
-            export PATH="/opt/homebrew/opt/openjdk/bin:${PATH//\/opt\/homebrew\/opt\/openjdk\/bin:/}"
+            formula="openjdk"
             ;;
         *)
-            echo "Usage: setjava [17|23]"
+            echo "Usage: setjava [17|21|23]"
             return 1
             ;;
     esac
+
+    java_home="$(brew --prefix "$formula" 2>/dev/null)/libexec/openjdk.jdk/Contents/Home"
+    java_bin="$(brew --prefix "$formula" 2>/dev/null)/bin"
+    [[ -d "$java_home" && -d "$java_bin" ]] || {
+        echo "OpenJDK $1 is not installed"
+        return 1
+    }
+
+    export JAVA_HOME="$java_home"
+    local clean_path="$PATH"
+    clean_path="${clean_path//\/opt\/homebrew\/opt\/openjdk@17\/bin:/}"
+    clean_path="${clean_path//\/opt\/homebrew\/opt\/openjdk@21\/bin:/}"
+    clean_path="${clean_path//\/opt\/homebrew\/opt\/openjdk\/bin:/}"
+    export PATH="$java_bin:$clean_path"
     echo "Switched to Java $1:"
     java -version
 }
@@ -109,39 +144,39 @@ setjava() {
 
 # Autoload custom functions (lazy-loaded on first use)
 fpath=(~/.zsh_functions $fpath)
-autoload -Uz killtree killport showtree_port start_dte start_agent clean_output_tsc snapshot_forward snapshot_forward_api snapshot_forward_workflow owadd owremove owprune owpr _wt_resolve_base _wt_tmux_session wtadd wtpr wtremove wtprune wtlinear wtnight chauwt-setup ccrka minio
-
-# bun completions (deferred, after compinit)
-zinit wait"1" lucid is-snippet for /Users/nartc/.bun/_bun
+autoload -Uz killtree killport showtree_port start_dte start_agent clean_output_tsc snapshot_forward snapshot_forward_api snapshot_forward_workflow owadd owremove owprune owpr _wt_resolve_base _wt_tmux_session wtadd wtaddpg wtpr wtremove wtprune wtlinear wtlinearpg wtnight chauwt-setup ccrka minio pgcli
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+[[ -r "$BUN_INSTALL/_bun" ]] && zinit wait"1" lucid is-snippet for "$BUN_INSTALL/_bun"
 
 # elixir
-export PATH="$PATH:/$HOME/.elixir-install/installs/elixir/1.18.3-otp-27/bin"
-export PATH="$PATH:/$HOME/.elixir-install/installs/otp/27.2.3/bin"
+export PATH="$PATH:$HOME/.elixir-install/installs/elixir/1.18.3-otp-27/bin"
+export PATH="$PATH:$HOME/.elixir-install/installs/otp/27.2.3/bin"
 
 # go
 export PATH="$PATH:$GOROOT/bin"
 
-# eval "$(oh-my-posh init zsh --config $(brew --prefix oh-my-posh)/themes/json.omp.json)"
-eval "$(oh-my-posh init zsh --config /opt/homebrew/opt/oh-my-posh/themes/negligible.omp.json)"
+if command -v oh-my-posh >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
+  OMP_THEME="$(brew --prefix oh-my-posh 2>/dev/null)/themes/negligible.omp.json"
+  [[ -r "$OMP_THEME" ]] && eval "$(oh-my-posh init zsh --config "$OMP_THEME")"
+fi
 
 # . "$HOME/.local/bin/env"
 export GOOGLE_CLOUD_PROJECT="nartc-gemini"
 autoload -Uz compinit && compinit -C
-source <(COMPLETE=zsh tms)
+command -v tms >/dev/null 2>&1 && source <(COMPLETE=zsh tms)
 
-gh() {
-    if [[ "$1" == "auth" && "$2" == "token" ]]; then
-        echo "🔒 Token display blocked for security"
-    else 
-        command gh "$@"
-    fi
-}
+# gh() {
+#     if [[ "$1" == "auth" && "$2" == "token" ]]; then
+#         echo "🔒 Token display blocked for security"
+#     else
+#         command gh "$@"
+#     fi
+# }
 
-export PATH="/Users/nartc/Library/Python/3.9/bin:$PATH"
+[[ -d "$HOME/Library/Python/3.9/bin" ]] && export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 
 # pyenv (lazy-loaded)
 export PYENV_ROOT="$HOME/.pyenv"

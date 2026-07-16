@@ -2,6 +2,22 @@
 .idea/**
 .DS_Store
 
+# Neovim's source tree was initially added wholesale. These are local editor
+# state and must not be copied to another machine.
+.config/nvim/.aider*
+.config/nvim/.claude
+.config/nvim/.claude/**
+.config/nvim/.git
+.config/nvim/.git/**
+.config/nvim/.idea
+.config/nvim/.idea/**
+
+# TPM and its plugins are bootstrapped from the pinned configuration after
+# apply. Keeping their cloned repositories out of source-state deployment
+# prevents cross-machine copies of caches and embedded Git metadata.
+.config/tmux/plugins
+.config/tmux/plugins/**
+
 # SSH private keys are per-device bootstrap artifacts, not dotfiles.
 # Generate a fresh key on each laptop and add the public key to GitHub/Bitbucket.
 private_dot_ssh/encrypted_private_id_ed25519.age

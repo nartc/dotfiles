@@ -1,1 +1,9 @@
 dot_zsh_functions/dot_idea
+
+# Runtime/editor state is ignored by Chezmoi and must not be re-added to the
+# source repository after it is removed in the next cleanup pass.
+dot_config/nvim/dot_aider*
+dot_config/nvim/dot_claude/
+dot_config/nvim/dot_git/
+dot_config/nvim/dot_idea/
+dot_config/tmux/plugins/

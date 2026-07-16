@@ -1,7 +1,6 @@
-{{- if eq .chezmoi.os "darwin" -}}
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 # ─────────────────────────────────────────────
 # Folder Setup
@@ -166,4 +165,3 @@ for app in "Dock" "Finder"; do
 done
 
 echo "Done. Note that some of these changes require a logout/restart to take effect."
-{{ end -}}
