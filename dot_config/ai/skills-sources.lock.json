@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "updated_at": "2026-07-13",
+  "policy": "Track adapted skill sources for review. Never auto-overwrite local skills from upstream; diff upstream first and update manually.",
+  "skills": [
+    {
+      "local_skill": "ui-taste-review",
+      "local_path": "~/.config/ai/skills/ui-taste-review",
+      "source_repo": "emilkowalski/skills",
+      "source_commit": "1274a0584c4fe9e94304a4e29094cefe5eb51dbe",
+      "source_paths": [
+        "skills/emil-design-eng/SKILL.md"
+      ],
+      "additional_sources": [
+        "https://www.tasteskill.dev/",
+        "https://www.tasteskill.dev/docs",
+        "https://www.tasteskill.dev/guide"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT for emilkowalski/skills; TasteSkill terms unverified",
+      "last_checked": "2026-07-07"
+    },
+    {
+      "local_skill": "review-animations",
+      "local_path": "~/.config/ai/skills/review-animations",
+      "source_repo": "emilkowalski/skills",
+      "source_commit": "1274a0584c4fe9e94304a4e29094cefe5eb51dbe",
+      "source_paths": [
+        "skills/review-animations/SKILL.md",
+        "skills/review-animations/STANDARDS.md",
+        "skills/animation-vocabulary/SKILL.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-07"
+    },
+    {
+      "local_skill": "skill-authoring",
+      "local_path": "~/.config/ai/skills/skill-authoring",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/productivity/writing-great-skills/SKILL.md",
+        "skills/productivity/writing-great-skills/GLOSSARY.md"
+      ],
+      "additional_sources": [
+        "~/.config/ai/skills/skill-creator/SKILL.md",
+        "~/.config/ai/skills/skill-creator/scripts/validate-metadata.py",
+        "~/.config/ai/skills/skill-creator/references/checklist.md",
+        "superpowers@git+https://github.com/obra/superpowers.git#896224c4b1879920ab573417e68fd51d2ccc9072: skills/writing-skills/SKILL.md",
+        "superpowers@git+https://github.com/obra/superpowers.git#896224c4b1879920ab573417e68fd51d2ccc9072: skills/test-driven-development/SKILL.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT for mattpocock/skills; local skill-creator and Superpowers source licenses not re-audited in this slice",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "codebase-design",
+      "local_path": "~/.config/ai/skills/codebase-design",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/engineering/codebase-design/SKILL.md",
+        "skills/engineering/codebase-design/DEEPENING.md",
+        "skills/engineering/codebase-design/DESIGN-IT-TWICE.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "grill-with-docs",
+      "local_path": "~/.config/ai/skills/grill-with-docs",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/engineering/domain-modeling/SKILL.md",
+        "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
+        "skills/engineering/domain-modeling/ADR-FORMAT.md",
+        "LICENSE"
+      ],
+      "additional_sources": [
+        "nicobailon/grill-for-unknowns@2d9c99bba6a22edf4ae9a2d54c8148c3a155afc6: plugins/grill-for-unknowns/SKILL.md",
+        "nicobailon/grill-for-unknowns@2d9c99bba6a22edf4ae9a2d54c8148c3a155afc6: plugins/grill-for-unknowns/references/upstream-lineage.md",
+        "nicobailon/grill-for-unknowns@2d9c99bba6a22edf4ae9a2d54c8148c3a155afc6: plugins/grill-for-unknowns/LICENSE"
+      ],
+      "adoption_mode": "adapt-update",
+      "license": "MIT; unknown-discovery adaptation preserves Matt Pocock and Nico Bailon attribution",
+      "last_checked": "2026-07-10"
+    },
+    {
+      "local_skill": "manual-code-review",
+      "local_path": "~/.config/ai/skills/manual-code-review",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/engineering/code-review/SKILL.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "handoff",
+      "local_path": "~/.config/ai/skills/handoff",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/productivity/handoff/SKILL.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "wayfinder",
+      "local_path": "~/.config/ai/skills/wayfinder",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "d574778f94cf620fcc8ce741584093bc650a61d3",
+      "source_paths": [
+        "skills/engineering/wayfinder/SKILL.md"
+      ],
+      "source_note": "Absent at earlier tracked Matt commit 8515a080a74dbcf5019a1a78efc24b5fcafb36b8; raw engineering/wayfinder path returned 404, so this skill is locked to d574778f94cf620fcc8ce741584093bc650a61d3 where the source exists.",
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "prototype",
+      "local_path": "~/.config/ai/skills/prototype",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/engineering/prototype/SKILL.md",
+        "skills/engineering/prototype/LOGIC.md",
+        "skills/engineering/prototype/UI.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "git-guardrails",
+      "local_path": "~/.config/ai/skills/git-guardrails",
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "source_paths": [
+        "skills/misc/git-guardrails-claude-code/SKILL.md",
+        "skills/misc/git-guardrails-claude-code/scripts/block-dangerous-git.sh"
+      ],
+      "additional_sources": [
+        "~/.config/ai/agents.md"
+      ],
+      "adoption_mode": "adapt",
+      "license": "MIT",
+      "last_checked": "2026-07-08"
+    },
+    {
+      "local_skill": "improve-react",
+      "local_path": "~/.config/ai/skills/improve-react",
+      "source_repo": "millionco/react-doctor",
+      "source_commit": "e5b06905ac10d6df538a63563f357272e624f5e3",
+      "source_paths": [
+        "skills/improve-react/SKILL.md",
+        "skills/improve-react/AUDIT.md",
+        "skills/improve-react/PLAN-TEMPLATE.md",
+        "LICENSE"
+      ],
+      "adoption_mode": "adapt",
+      "license": "Modified MIT License; full upstream text preserved at references/upstream-license.txt",
+      "permission_basis": "User confirmed written permission on 2026-07-13; permission document not stored or independently verified",
+      "last_checked": "2026-07-13"
+    }
+  ],
+  "tracked_upstreams": [
+    {
+      "source_repo": "mattpocock/skills",
+      "source_commit": "8515a080a74dbcf5019a1a78efc24b5fcafb36b8",
+      "adoption_mode": "planned-adapt",
+      "candidate_paths": [
+        "skills/to-issues/SKILL.md",
+        "skills/wizard/SKILL.md",
+        "skills/diagnosing-bugs/SKILL.md",
+        "skills/tdd/SKILL.md",
+        "skills/edit-article/SKILL.md"
+      ],
+      "license": "MIT",
+      "last_checked": "2026-07-07"
+    }
+  ]
+}

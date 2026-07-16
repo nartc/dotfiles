@@ -1,0 +1,224 @@
+notify = [
+    "/Users/nartc/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient",
+    "turn-ended",
+]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "max"
+approvals_reviewer = "auto_review"
+service_tier = "default"
+
+[projects."/Users/nartc/.zsh_functions"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/code/github/nrwl/ocean"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/polygraph-demo-test-1-76d038d7/repos/backend-21a8caa1"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/polygraph-demo-test-1-76d038d7/repos/frontend-21a8caa1"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/nxa-1523-ansi-strip-display-side-4016cfd0/repos/nrwl/ocean"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/nxa-1754-handle-redeploys-better-0a970aea/repos/nrwl/cloud-infrastructure"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/nxa-1702-update-the-docs-to-include-5c889b17/repos/nrwl/polygraph-docs"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/nxa-1839-polygraph-cli-oauth-keychain-access-80e18865/repos/nrwl/polygraph-docs"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/code/github/nartc/mapper"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/code/github/nrwl/ocean-main"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/Documents/Codex/2026-06-24/https-www-blender-org-lab-mcp"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/demo-b3a28f37-ce6a3679/session"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/nxa-2050-add-polygraph-session-reference-picker-ffc5472a"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/typescript-7-98e7ab57"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/lucky-koala-a927a4e4/repos/nrwl/ocean"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/core-harden-ddb05c82/repos"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/core-harden-ddb05c82/session"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/core-harden-ddb05c82/repos/angular-threejs/angular-three"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/core-harden-ddb05c82/repos/angular/angular"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/core-harden-ddb05c82/repos/pmndrs/react-three-fiber"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/code/github/angular-threejs/angular-three"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/ecctrl-angular-three-8ef3967a/repos/pmndrs/ecctrl"]
+trust_level = "trusted"
+
+[projects."/Users/nartc/.polygraph/sessions/ecctrl-angular-three-8ef3967a/repos/angular-threejs/docs"]
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+"gpt-5.6-sol" = 4
+
+[features]
+hooks = true
+js_repl = false
+
+[plugins."document-skills@anthropic-agent-skills"]
+enabled = false
+
+[plugins."example-skills@anthropic-agent-skills"]
+enabled = false
+
+[plugins."rust-analyzer-lsp@claude-plugins-official"]
+enabled = true
+
+[plugins."codex@openai-codex"]
+enabled = false
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."sites@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."polygraph@polygraph-plugins"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[marketplaces.openai-bundled]
+last_updated = "2026-07-10T04:05:23Z"
+source_type = "local"
+source = "/Users/nartc/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.anthropic-agent-skills]
+last_updated = "2026-07-08T16:01:02Z"
+last_revision = "9d2f1ae187231d8199c64b5b762e1bdf2244733d"
+source_type = "git"
+source = "https://github.com/anthropics/skills.git"
+
+[marketplaces.claude-plugins-official]
+last_updated = "2026-07-15T15:35:07Z"
+last_revision = "8959b3a10ed963a6f8270a11634d591a7def2304"
+source_type = "git"
+source = "https://github.com/anthropics/claude-plugins-official.git"
+
+[marketplaces.openai-codex]
+last_updated = "2026-07-08T16:01:05Z"
+last_revision = "db52e28f4d9ded852ab3942cea316258ae4ef346"
+source_type = "git"
+source = "https://github.com/openai/codex-plugin-cc.git"
+
+[marketplaces.polygraph-plugins]
+last_updated = "2026-07-14T14:59:01Z"
+last_revision = "3bfa883e1ab59876fc184176a1f7c9f30b0e6309"
+source_type = "git"
+source = "https://github.com/nrwl/polygraph-skills.git"
+
+[marketplaces.nx-claude-plugins]
+last_updated = "2026-06-26T00:35:16Z"
+last_revision = "9609810013040356b2d93c0688a50d9078cdc35a"
+source_type = "git"
+source = "https://github.com/nrwl/nx-ai-agents-config.git"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-07-10T01:54:53Z"
+source_type = "local"
+source = "/Users/nartc/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[shell_environment_policy]
+inherit = "core"
+
+[desktop]
+conversationDetailMode = "STEPS_PROSE"
+ambient-suggestions-enabled = true
+followUpQueueMode = "queue"
+dock-icon-preference = "codex-system"
+keepRemoteControlAwakeWhilePluggedIn = true
+
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/nartc/.codex"
+CODEX_HOME = "/Users/nartc/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "6d25aa7656feac858f3a3bdaea5bcbab0dbfd426c9de8e6931ce90c399ee8e4f,c8b7e809d7cf9e20a57123b2530d476ccec9a01a6230a7b2b924fea7d94d7f4a"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = "Control desktop apps on macOS through Computer Use."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.707.31428"
+SKY_CUA_SERVICE_PATH = "/Users/nartc/.codex/plugins/cache/openai-bundled/computer-use/1.0.1000366/Codex Computer Use.app"
+CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
+
+[mcp_servers.computer-use]
+command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+args = ["mcp"]
+cwd = "."
+enabled = false
+
+[hooks.state]
+
+[hooks.state."/Users/nartc/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:74ec99c7e8924e15060d39af66d5a3540fb788e8a6bc700d80ea0c71d8e8817d"
+
+[hooks.state."polygraph@polygraph-plugins:hooks/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:e2a1526558137712a4a5c254d2d80a522a6144b008291553c086aea1e71ce8b9"
+
+[hooks.state."polygraph@polygraph-plugins:hooks/hooks.json:session_start:0:1"]
+trusted_hash = "sha256:497c2c29e99fc534ccfd3576d6d5656bd37795fdcc74671629bf40e09e72fc10"
+
+[hooks.state."polygraph@polygraph-plugins:hooks/hooks.json:session_start:1:0"]
+trusted_hash = "sha256:99932318b4eee08ae52ef453e3fa85ab0ea82e06ed741ccfb270163fde186156"
+
+[hooks.state."polygraph@polygraph-plugins:hooks/hooks.json:pre_tool_use:0:0"]
+trusted_hash = "sha256:de343c82e1206522e76c67458b784d11e9ed95d4346a81a3ee6e9b99a5f9923d"

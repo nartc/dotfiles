@@ -5,16 +5,13 @@
   },
   "permissions": {
     "allow": [
-      "Bash(git remote add:*)",
-      "Bash(git fetch:*)",
-      "Bash(git cherry-pick:*)",
       "mcp__linear-server__get_issue",
       "mcp__linear-server__list_comments",
-      "Bash(npx nx sync-artifacts)",
       "Bash(git -C $HOME/code/github/nrwl/nx-ai-agents-config status)"
     ],
     "defaultMode": "default"
   },
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -75,13 +72,11 @@
     "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); model=$(echo \"$input\" | jq -r '.model.display_name'); used=$(echo \"$input\" | jq -r '.context_window.used_percentage // empty'); git_branch=\"\"; if git -C \"$cwd\" rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git -C \"$cwd\" branch --show-current 2>/dev/null); fi; parts=\"\"; if [ -n \"$git_branch\" ]; then parts=$(printf \"\\033[38;5;203m%s\\033[0m\" \"$git_branch\"); fi; if [ -n \"$parts\" ]; then parts=\"$parts \\033[2m|\\033[0m \"; fi; parts=\"$parts$model\"; if [ -n \"$used\" ]; then ctx_left=$(printf '%.0f' \"$(echo \"80 - $used\" | bc)\"); parts=\"$parts \\033[2m|\\033[0m ctx ${ctx_left}%\"; fi; echo \"$parts\""
   },
   "enabledPlugins": {
-    "notion-workspace-plugin@notion-plugin-marketplace": true,
     "document-skills@anthropic-agent-skills": true,
-    "example-skills@anthropic-agent-skills": true,
+    "example-skills@anthropic-agent-skills": false,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "nx@nx-claude-plugins": true,
     "codex@openai-codex": true,
-    "polygraph@nx-claude-plugins": true,
     "polygraph@polygraph-plugins": true
   },
   "extraKnownMarketplaces": {
@@ -106,16 +101,9 @@
   },
   "promptSuggestionEnabled": false,
   "skipDangerousModePermissionPrompt": true,
-  "theme": "light",
+  "skipWorkflowUsageWarning": true,
+  "theme": "auto",
+  "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": true,
-  "mcpServers": {
-    "local-pr-reviewer": {
-      "type": "local",
-      "command": [
-        "node",
-        "{{ .chezmoi.homeDir }}/.config/local-pr-reviewer/dist/mcp-server/index.js"
-      ]
-    }
-  }
+  "voiceEnabled": true
 }
