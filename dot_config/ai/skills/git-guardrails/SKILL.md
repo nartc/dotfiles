@@ -35,14 +35,14 @@ For shared-history rewrites, require explicit user approval and prefer `--force-
 ## Safe cleanup pattern
 
 1. Inspect status/diff/staged/log.
-2. State intended operation and risk.
+2. State the intended operation, its reason, and its risk.
 3. If destructive or history-rewriting, ask for explicit confirmation.
 4. Preserve a recovery path when feasible: backup branch, stash name, patch file, or commit reference.
 5. Stage only intended paths/hunks. Avoid `git add .` in dirty worktrees.
 6. Inspect staged diff before commit.
 7. Check diff for secrets, tokens, `.env`, credentials, generated auth files, private logs, and customer data.
 8. Do not bypass failing hooks. Fix, report, or ask.
-9. Report final status, commit hashes, commands run, and verification evidence.
+9. Report why each mutation was needed and what it accomplished, alongside final status, commit hashes, and commands run. Do not provide only a command or change inventory.
 
 ## Risk table
 

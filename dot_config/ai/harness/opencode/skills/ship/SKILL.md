@@ -28,6 +28,12 @@ If scope/tag is not obvious from 30 commits, go further back with `git log --one
 
 ### Draft Commit Message
 
+**What-and-why communication:**
+
+- Read the user request, linked issue or task context, and diff to identify the problem, intended outcome, or reason for the change.
+- For every notable change, pair a concise `What` with its `Why`. Apply this to configuration, refactor, test, and dependency changes too.
+- Ground the reason in available evidence. Do not invent user impact or business motivation; if the purpose cannot be determined, use the narrowest supported reason rather than a speculative one.
+
 **Tag/scope rules:**
 
 - Derive from repo conventions observed in git log
@@ -45,8 +51,8 @@ If scope/tag is not obvious from 30 commits, go further back with `git log --one
 - Bulleted list
 - Lowercase
 - First-person present tense verbs ("add", "remove", "update", "fix")
+- Pair each notable change with its purpose in the same concise bullet; do not use the body as a file or change list
 - Sacrifice grammar for conciseness
-- Test additions (unit, integration, e2e) are fine to mention
 - No emojis
 
 ### Stage and Commit
@@ -94,22 +100,22 @@ Run in parallel:
 **Single commit on branch:**
 
 - PR title = commit message title
-- PR description = commit body bullets under `## Summary`
+- PR description = derive the motivation and implementation details from the commit body, user context, and diff
 
 **Multiple commits on branch:**
 
 - PR title = synthesize a concise title from the commits (must fit GitHub UI without truncation)
-- PR description = derive bullet points from all commit messages under `## Summary`
+- PR description = synthesize the branch motivation and implementation details from all commit messages, user context, and diff
 
 **PR description format:**
 
 ```
-## Summary
-- bullet points derived from commits
+## Changes
+- **What:** concise implementation detail
+  **Why:** problem, intended outcome, or supported reason
 ```
 
-- No manual test plan checklists (e.g., `[ ] verify X`, `[ ] test Y`)
-- Mentioning test coverage additions (unit, integration, e2e) in the summary bullets is fine
+- Use one terse bullet per notable change, with its `What` and `Why`; do not submit a PR description that only inventories changes.
 
 ### Assign and Label
 
@@ -120,8 +126,9 @@ Run in parallel:
 
 ```bash
 gh pr create --title "PR title" --body "$(cat <<'EOF'
-## Summary
-- bullet points
+## Changes
+- **What:** implementation detail
+  **Why:** reason for the change
 EOF
 )" --assignee nartc --label label1 --label label2
 ```

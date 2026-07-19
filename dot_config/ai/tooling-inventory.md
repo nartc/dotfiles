@@ -165,7 +165,7 @@ Preferred order:
 8. Done: `git-guardrails` runtime-neutral destructive-git safety behavior; do not copy Claude hooks blindly.
 9. Done: removed active Superpowers plugins from OpenCode and Codex. Keep useful behavior via local/Matt skills and global instructions, not Superpowers skill names:
    - no `using-superpowers` replacement
-   - no heavy `verification-before-completion`; use pragmatic evidence in summaries, lint/focused tests normally, typecheck only when explicitly requested or before push/ship/PR
+    - no heavy `verification-before-completion`; validation is risk-based, not a ship gate. Reuse relevant results, run at most one new focused check when warranted, and ask before expensive Nx or workspace-wide validation
    - no mandatory TDD ritual; add/update focused tests for behavior changes and regressions
     - subagent use is exception-only: use it for genuinely parallel verification or isolated implementation after main-agent discovery, never generic exploration or research
    - planning/design uses `wayfinder`, `grill-with-docs`, `manual-code-review`, and possibly Matt `to-issues` later

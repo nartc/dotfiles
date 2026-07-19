@@ -30,6 +30,12 @@ If scope/tag is not obvious from 30 commits, go further back with `git log --one
 
 ### Draft commit message
 
+What-and-why communication:
+
+- Read the user request, linked issue or task context, and diff to identify the problem, intended outcome, or reason for the change.
+- For every notable change, pair a concise `What` with its `Why`. Apply this to configuration, refactor, test, and dependency changes too.
+- Ground the reason in available evidence. Do not invent user impact or business motivation; if the purpose cannot be determined, use the narrowest supported reason rather than a speculative one.
+
 Tag/scope:
 
 - Derive from repo conventions observed in git log.
@@ -47,8 +53,8 @@ Body:
 - Bulleted list.
 - Lowercase.
 - First-person present tense verbs (`add`, `remove`, `update`, `fix`).
+- Pair each notable change with its purpose in the same concise bullet; do not use the body as a file or change list.
 - Sacrifice grammar for conciseness.
-- Test additions may be mentioned.
 - No emojis.
 
 ### Stage and commit
@@ -68,6 +74,18 @@ EOF
 ```
 
 - If a pre-commit hook fails: fix the issue, re-stage, create a new commit. Never amend unless the user explicitly asks.
+
+## PR context
+
+When the Polygraph workflow accepts a PR description, provide reviewer-facing context in this order:
+
+```
+## Changes
+- **What:** concise implementation detail
+  **Why:** problem, intended outcome, or supported reason
+```
+
+Use one terse bullet per notable change, with its `What` and `Why`; do not submit a PR description that only inventories changes.
 
 ## After commit
 

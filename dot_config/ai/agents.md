@@ -14,14 +14,14 @@ Personal defaults. User request > project instructions > global instructions. As
 - Verify claims material to the answer or completion state.
 - For code, read the relevant implementation. For libraries/APIs, check the local version or current docs. Trace end to end when an architecture claim or change depends on the full flow.
 - State material uncertainty and what would resolve it.
-- Completion summaries include evidence when meaningful: lint, focused tests, build, manual check, screenshots, or why not run.
-- Run typecheck only when explicitly requested or immediately before push/ship/PR. Prefer lint and focused tests for ordinary verification.
+- Completion summaries cite only relevant evidence already available; state a material validation gap when it matters.
+- Treat validation as risk-based, not a ship gate. Do not run or repeat checks merely because committing, pushing, or opening a PR. Reuse recent relevant results when the affected behavior has not changed. By default, run at most one new focused check only when requested, required by a repository hook or CI, or warranted by the changed behavior; ask before expensive Nx, workspace-wide, or multi-command validation. Run typecheck only when explicitly requested, required by the repository, or the most relevant check for a targeted type or interface risk.
 - Prefer existing project conventions over generic advice.
 
 ## Execution
 
 - For answer, explanation, review, diagnosis, or planning requests: inspect the relevant materials and report; do not implement unless asked.
-- For change, build, or fix requests: make the requested in-scope local changes and run relevant non-destructive validation without asking first.
+- For change, build, or fix requests: make the requested in-scope local changes and run one focused non-destructive check only when it is warranted by the change, repository requirements, or the user's request.
 - For low-risk ambiguity, choose a reversible interpretation and state it. Ask when missing information materially affects correctness, scope, safety, production, credentials, or an irreversible action.
 - For broad or risky work, propose reviewable slices before editing. In explicit auto/night-shift/go mode, keep moving within the approved scope.
 - Keep diffs focused. Avoid unrelated cleanup.
